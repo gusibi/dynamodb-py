@@ -2,6 +2,7 @@
 
 from .fields import Attribute
 from .errors import FieldValidationError
+from .adapter import Table
 
 
 def _initialize_attributes(model_class, name, bases, attrs):
@@ -30,7 +31,8 @@ def _initialize_indices(model_class, name, bases, attrs):
     """
     model_class._indexed_fields = []
     model_class._indexed_unique_fields = model_class.__unique_index__
-    model_class._indexed_value_fields = []
+    model_class._hash_key = None
+    model_class._range_key = None
     for parent in bases:
         if not isinstance(parent, ModelMetaclass):
             continue
@@ -42,10 +44,10 @@ def _initialize_indices(model_class, name, bases, attrs):
         if isinstance(v, (Attribute,)):
             if v.indexed:
                 model_class._indexed_fields.append(k)
-            elif v.index_value:
-                model_class._indexed_value_fields.append(k)
-    if model_class._meta['indexed_fields']:
-        model_class._indexed_fields.extend(model_class._meta['indexed_fields'])
+            elif v.range_key:
+                model_class._range_key = k
+            elif v.hash_key:
+                model_class._hash_key = k
 
 
 class ModelMetaclass(type):
@@ -61,7 +63,7 @@ class ModelMetaclass(type):
         super(ModelMetaclass, cls).__init__(name, bases, attrs)
         name = cls.__table_name__ or name
         _initialize_attributes(cls, name, bases, attrs)
-        # _initialize_indices(cls, name, bases, attrs)
+        _initialize_indices(cls, name, bases, attrs)
 
 
 class ModelBase(object):
@@ -70,14 +72,36 @@ class ModelBase(object):
 
     @classmethod
     def create_table(cls):
+        instance = cls()
+        table = Table(instance).create_table()
+        return table
+
+    @classmethod
+    def delete_table(cls):
+        instance = cls()
+        table = Table(instance).delete_table()
+        return table
+
+    @classmethod
+    def create(cls, **kwargs):
+        instance = cls(**kwargs)
+        return instance.save()
+
+    def update(self, **kwargs):
         pass
 
     @classmethod
-    def drop_table(cls):
-        pass
+    def get(cls, **primary_keys):
+        instance = cls()
+        item = Table(instance).get(**primary_keys)
+        value = item.get('Item')
+        if not value:
+            return None
+        data = instance._get_values_for_read(value)
+        return cls(**data)
 
     @classmethod
-    def batch_get(cls):
+    def batch_get(cls, primary_keys_list):
         pass
 
     @classmethod
@@ -92,9 +116,19 @@ class ModelBase(object):
     def query(cls):
         pass
 
+    @classmethod
+    def scan(cls):
+        instance = cls()
+        return Table(instance).scan()
+
+    def write(self):
+        return Table(self).write(self.item)
+
     def save(self, overwrite=False):
-        self.is_valid()
-        pass
+        if not self.is_valid():
+            raise Exception(self.errors)
+        self.write()
+        return True
 
 
 class Model(ModelBase):
@@ -123,17 +157,16 @@ class Model(ModelBase):
         >>> f.errors
         ['bar', 'Invalid value']
         .. WARNING::
-            You may want to use ``validate`` described below to validate your model
+        You may want to use ``validate`` described below to validate your model
         """
-        self._errors = []
+        self.errors = []
         for field in self.fields:
-            # print field, self
             try:
                 field.validate(self)
             except FieldValidationError as e:
-                self._errors.extend(e.errors)
+                self.errors.extend(e.errors)
         self.validate()
-        return not bool(self._errors)
+        return not bool(self.errors)
 
     def validate_attrs(self, **kwargs):
         self._errors = []
@@ -198,3 +231,25 @@ class Model(ModelBase):
     def fields(self):
         """Returns the list of field names of the model."""
         return self.attributes.values()
+
+    def _get_values_for_read(self, values):
+        read_values = {}
+        for att, value in values.iteritems():
+            if att not in self.attributes:
+                continue
+            descriptor = self.attributes[att]
+            _value = descriptor.typecast_for_read(value)
+            read_values[att] = _value
+        return read_values
+
+    @property
+    def item(self):
+        data = {}
+        for attr, field in self.attributes.iteritems():
+            value = getattr(self, attr)
+            data[attr] = field.typecast_for_storage(value)
+        return data
+
+    @property
+    def items(self):
+        pass
