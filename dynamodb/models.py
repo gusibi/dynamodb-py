@@ -94,11 +94,9 @@ class ModelBase(object):
     def get(cls, **primary_keys):
         instance = cls()
         item = Table(instance).get(**primary_keys)
-        value = item.get('Item')
-        if not value:
+        if not item:
             return None
-        data = instance._get_values_for_read(value)
-        return cls(**data)
+        return cls(**item)
 
     @classmethod
     def batch_get(cls, primary_keys_list):

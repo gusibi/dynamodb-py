@@ -1,11 +1,12 @@
 #! -*- coding: utf-8 -*-
 
 import pytz
+import dateutil.parser
 from datetime import datetime, date, time
 
 
 # http://stackoverflow.com/questions/24856643/unexpected-results-converting-timezones-in-python
-def str_time(dt, fmt='%Y-%m-%d %H:%M:%S', with_timezone=False):
+def str_time(dt):
     """datetime to ISO 8601 str"""
     if not dt or not isinstance(dt, (datetime, date, time)):
         raise TypeError('dt should be date object, and not a %s' % type(dt))
@@ -15,15 +16,23 @@ def str_time(dt, fmt='%Y-%m-%d %H:%M:%S', with_timezone=False):
     return dt.isoformat()
 
 
-def str_to_time(dt_str):
+def str_date(dt):
+    """datetime to ISO 8601 str"""
+    if not dt or not isinstance(dt, (datetime, date, time)):
+        raise TypeError('dt should be date object, and not a %s' % type(dt))
+    if not dt.tzinfo:
+        # update dt with utc zone
+        dt = pytz.utc.localize(dt)
+    return dt.date.isoformat()
+
+
+def str_to_time(s):
     """str time to datetime"""
-    formats = ['%Y%m%dT%H%M%S%z', '%Y-%m-%d', '%Y-%m-%dT%H:%M:%S%z']
-    for format in formats:
-        try:
-            dt = datetime.strptime(dt_str, format)
-            return dt
-        except:
-            raise TypeError('%s parsed error' % dt)
+    try:
+        dt = dateutil.parser.parse(s)
+        return dt
+    except ValueError:
+        raise ValueError('%s parsed error' % s)
 
 
 def get_attribute_type(attribute):

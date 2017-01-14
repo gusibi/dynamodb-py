@@ -9,7 +9,7 @@ import decimal
 from datetime import datetime, date, timedelta
 
 from .errors import FieldValidationError
-from .helpers import str_time
+from .helpers import str_time, str_to_time
 
 
 __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
@@ -100,7 +100,7 @@ class Attribute(object):
         return unicode
 
     def acceptable_types(self):
-        return basestring
+        return (basestring, dict, list)
 
     def validate(self, instance):
         val = getattr(instance, self.name)
@@ -123,9 +123,10 @@ class Attribute(object):
 
 class CharField(Attribute):
 
-    def __init__(self, max_length=255, **kwargs):
+    def __init__(self, min_length=0, max_length=None, **kwargs):
         super(CharField, self).__init__(**kwargs)
         self.max_length = max_length
+        self.min_length = min_length
 
     def typecast_for_read(self, value):
         if value == 'None':
@@ -149,15 +150,30 @@ class CharField(Attribute):
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
+        print self.hash_key, self.name
 
-        if val and len(val) > self.max_length:
-            errors.append((self.name, 'exceeds max length'))
+        if val:
+            val_len = len(val)
+            if ((self.hash_key and val_len > 2048) or
+                    (self.range_key and val_len > 1024) or
+                    (self.max_length and val_len > self.max_length)):
+                errors.append((self.name, 'exceeds max length'))
+            elif val_len < self.min_length:
+                errors.append((self.name, 'exceeds min length'))
+            else:
+                # size 400k
+                pass
 
         if errors:
             raise FieldValidationError(errors)
 
 
 class IntegerField(Attribute):
+
+    def __init__(self, minimum=None, maximum=None, **kwargs):
+        super(IntegerField, self).__init__(**kwargs)
+        self.maximum = maximum
+        self.minimum = minimum
 
     def typecast_for_read(self, value):
         return int(value)
@@ -184,6 +200,11 @@ class IntegerField(Attribute):
 
         if val and not isinstance(val, int):
             errors.append((self.name, 'type error, need integer'))
+
+        if self.minimum and val < self.minimum:
+            errors.append((self.name, 'exceeds minimum'))
+        elif self.maximum and val > self.maximum:
+            errors.append((self.name, 'exceeds maximum'))
 
         if errors:
             raise FieldValidationError(errors)
@@ -224,7 +245,7 @@ class FloatField(Attribute):
 class BooleanField(Attribute):
 
     def typecast_for_read(self, value):
-        return bool(int(value))
+        return value
 
     def typecast_for_storage(self, value):
         if value is None:
@@ -248,8 +269,8 @@ class DateTimeField(Attribute):
     def typecast_for_read(self, value):
         try:
             # We load as if the timestampe was naive
-            dt = datetime.fromtimestamp(float(value), tzutc())
             # And gently override (ie: not convert) to the TZ to UTC
+            dt = str_to_time(value)
             return dt
         except TypeError:
             return None
@@ -281,8 +302,8 @@ class DateField(Attribute):
     def typecast_for_read(self, value):
         try:
             # We load as if it is UTC time
-            dt = date.fromtimestamp(float(value))
             # And assign (ie: not convert) the UTC TimeZone
+            dt = str_to_time(value)
             return dt
         except TypeError:
             return None
@@ -345,7 +366,69 @@ class TimeDeltaField(Attribute):
         return self.value_type()
 
 
-class DocumentField(Attribute):
+class DictField(Attribute):
 
     def __init__(self, **kwargs):
-        super(DocumentField, self).__init__(**kwargs)
+        super(DictField, self).__init__(**kwargs)
+
+    def typecast_for_read(self, value):
+        if value == '':
+            return {}
+        value = json.loads(value)
+        return value
+
+    def typecast_for_storage(self, value):
+        """Typecasts the value for storing to Redis."""
+        if value is None:
+            return {}
+        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        return value
+
+    def validate(self, instance):
+        errors = []
+        try:
+            super(DictField, self).validate(instance)
+        except FieldValidationError as err:
+            errors.extend(err.errors)
+
+        val = getattr(instance, self.name)
+
+        if not isinstance(val, dict):
+            errors.append((self.name, 'must a dict'))
+
+        if errors:
+            raise FieldValidationError(errors)
+
+
+class ListField(Attribute):
+
+    def __init__(self, **kwargs):
+        super(ListField, self).__init__(**kwargs)
+
+    def typecast_for_read(self, value):
+        if not value:
+            return []
+        value = json.loads(value)
+        return value
+
+    def typecast_for_storage(self, value):
+        """Typecasts the value for storing to Redis."""
+        if value is None:
+            return []
+        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        return value
+
+    def validate(self, instance):
+        errors = []
+        try:
+            super(ListField, self).validate(instance)
+        except FieldValidationError as err:
+            errors.extend(err.errors)
+
+        val = getattr(instance, self.name)
+
+        if not isinstance(val, list):
+            errors.append((self.name, 'must a list'))
+
+        if errors:
+            raise FieldValidationError(errors)

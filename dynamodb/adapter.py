@@ -168,7 +168,12 @@ class Table(object):
         }
         if range_key:
             key[range_key] = primary_keys[range_key]
-        item = self.table.get_item(Key=key)
+        try:
+            response = self.table.get_item(Key=key)
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
+        else:
+            item = response['Item']
         return item
 
     def batch_get(self, **primary_keys):
