@@ -37,10 +37,17 @@ def str_to_time(s):
 
 def get_attribute_type(attribute):
     from .fields import CharField, IntegerField
-    print attribute, type(attribute)
     if isinstance(attribute, CharField):
         return 'S'
     elif isinstance(attribute, IntegerField):
         return 'N'
     else:
         raise TypeError('bad type')
+
+
+def get_items_for_storage(model_class, items):
+    results = []
+    for item in items:
+        instance = model_class(**item)
+        results.append(instance.item)
+    return results

@@ -7,11 +7,12 @@
 # build
 .gitconfig
 .installed.cfg
+.idea/
 bin/
 parts/
 eggs/
 build/
-python_weixin.egg-info/
+dynamodb-py.egg-info/
 dist/
 venv
 

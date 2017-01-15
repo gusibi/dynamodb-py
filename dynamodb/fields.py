@@ -16,9 +16,7 @@ __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
            'DateTimeField', 'DateField', 'TimeDeltaField', 'BooleanField']
 
 # TODO
-# 完善类型
-# 完成表操作
-# 完成项目create get batch_write batch_get batch_put delete
+# 完成项目 update delete_item
 # 完成index
 # 完成 query scan
 
@@ -150,7 +148,6 @@ class CharField(Attribute):
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
-        print self.hash_key, self.name
 
         if val:
             val_len = len(val)
@@ -224,7 +221,7 @@ class FloatField(Attribute):
         return float
 
     def acceptable_types(self):
-        return self.value_type()
+        return (int, long, float)
 
     def validate(self, instance):
         errors = []
@@ -235,7 +232,7 @@ class FloatField(Attribute):
 
         val = getattr(instance, self.name)
 
-        if val and not isinstance(val, float):
+        if val and not isinstance(val, self.acceptable_types()):
             errors.append((self.name, 'type error, need float'))
 
         if errors:

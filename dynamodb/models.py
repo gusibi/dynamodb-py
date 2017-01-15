@@ -3,6 +3,7 @@
 from .fields import Attribute
 from .errors import FieldValidationError
 from .adapter import Table
+from .helpers import get_items_for_storage
 
 
 def _initialize_attributes(model_class, name, bases, attrs):
@@ -48,6 +49,8 @@ def _initialize_indices(model_class, name, bases, attrs):
                 model_class._range_key = k
             elif v.hash_key:
                 model_class._hash_key = k
+    if name not in ('ModelBase', 'Model') and not model_class._hash_key:
+        raise Exception('hash_key is required')
 
 
 class ModelMetaclass(type):
@@ -71,18 +74,6 @@ class ModelBase(object):
     __metaclass__ = ModelMetaclass
 
     @classmethod
-    def create_table(cls):
-        instance = cls()
-        table = Table(instance).create_table()
-        return table
-
-    @classmethod
-    def delete_table(cls):
-        instance = cls()
-        table = Table(instance).delete_table()
-        return table
-
-    @classmethod
     def create(cls, **kwargs):
         instance = cls(**kwargs)
         return instance.save()
@@ -91,24 +82,36 @@ class ModelBase(object):
         pass
 
     @classmethod
-    def get(cls, **primary_keys):
-        instance = cls()
-        item = Table(instance).get(**primary_keys)
+    def get(cls, **primary_key):
+        instance = cls(**primary_key)
+        item = Table(instance).get()
         if not item:
             return None
-        return cls(**item)
+        value_for_read = instance._get_values_for_read(item)
+        return cls(**value_for_read)
 
     @classmethod
-    def batch_get(cls, primary_keys_list):
-        pass
+    def batch_get(cls, *primary_keys):
+        instance = cls()
+        items = Table(instance).batch_get_item(*primary_keys)
+        results = []
+        for item in items:
+            value_for_read = instance._get_values_for_read(item)
+            results.append(cls(**value_for_read))
+        return results
 
     @classmethod
-    def batch_write(cls):
-        pass
+    def batch_write(cls, kwargs, overwrite=False):
+        '''
+        kwargs: items list
+        '''
+        items = get_items_for_storage(cls, kwargs)
+        instance = cls()
+        return Table(instance).batch_write(items, overwrite=overwrite)
 
-    @classmethod
-    def delete(cls):
-        pass
+    def delete(self):
+        # delete an item
+        return Table(self).delete_item()
 
     @classmethod
     def query(cls):
@@ -120,7 +123,7 @@ class ModelBase(object):
         return Table(instance).scan()
 
     def write(self):
-        return Table(self).write(self.item)
+        return Table(self).put_item(self.item)
 
     def save(self, overwrite=False):
         if not self.is_valid():
@@ -240,14 +243,15 @@ class Model(ModelBase):
             read_values[att] = _value
         return read_values
 
-    @property
-    def item(self):
+    def _get_values_for_storage(self):
         data = {}
+        if not self.is_valid():
+            raise FieldValidationError(self.errors)
         for attr, field in self.attributes.iteritems():
             value = getattr(self, attr)
             data[attr] = field.typecast_for_storage(value)
         return data
 
     @property
-    def items(self):
-        pass
+    def item(self):
+        return self._get_values_for_storage()

@@ -29,7 +29,7 @@ class FieldValidationError(Exception):
     def __str__(self):
         if self._errors:
             if isinstance(self._errors, list):
-                error = self._errors[0]
+                error = self._errors[-1]
             else:
                 error = self._errors
             return str(error)
