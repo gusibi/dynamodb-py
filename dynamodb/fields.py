@@ -35,11 +35,11 @@ class DecimalEncoder(json.JSONEncoder):
 
 class Attribute(object):
     """Defines an attribute of the model.
-    The attribute accepts strings and are stored in Redis as
+    The attribute accepts strings and are stored in DynamoDB as
     they are - strings.
     Options
         name         -- alternate name of the attribute. This will be used
-                        as the key to use when interacting with Redis.
+                        as the key to use when interacting with DynamoDB.
         hash_key     -- is hash_key. Table primary key.
         range_key    -- is range_key. Table primary key.
         indexed      -- Index this attribute. Unindexed attributes cannot
@@ -132,7 +132,7 @@ class CharField(Attribute):
         return value.decode('utf-8')
 
     def typecast_for_storage(self, value):
-        """Typecasts the value for storing to Redis."""
+        """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return ''
         try:
@@ -375,7 +375,7 @@ class DictField(Attribute):
         return value
 
     def typecast_for_storage(self, value):
-        """Typecasts the value for storing to Redis."""
+        """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return {}
         value = json.dumps(value, indent=4, cls=DecimalEncoder)
@@ -409,7 +409,7 @@ class ListField(Attribute):
         return value
 
     def typecast_for_storage(self, value):
-        """Typecasts the value for storing to Redis."""
+        """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return []
         value = json.dumps(value, indent=4, cls=DecimalEncoder)
@@ -426,6 +426,40 @@ class ListField(Attribute):
 
         if not isinstance(val, list):
             errors.append((self.name, 'must a list'))
+
+        if errors:
+            raise FieldValidationError(errors)
+
+
+class SetField(Attribute):
+
+    def __init__(self, **kwargs):
+        super(SetField, self).__init__(**kwargs)
+
+    def typecast_for_read(self, value):
+        if not value:
+            return []
+        value = json.loads(value)
+        return value
+
+    def typecast_for_storage(self, value):
+        """Typecasts the value for storing to DynamoDB."""
+        if value is None:
+            return []
+        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        return value
+
+    def validate(self, instance):
+        errors = []
+        try:
+            super(SetField, self).validate(instance)
+        except FieldValidationError as err:
+            errors.extend(err.errors)
+
+        val = getattr(instance, self.name)
+
+        if not isinstance(val, set):
+            errors.append((self.name, 'must a set'))
 
         if errors:
             raise FieldValidationError(errors)
