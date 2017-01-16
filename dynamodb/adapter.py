@@ -186,7 +186,11 @@ class Table(object):
         # TODO
         pass
 
-    def _update_global_index(self):
+    def _update_global_indices(self):
+        # TODO
+        pass
+
+    def _update_local_indices(self):
         # TODO
         pass
 

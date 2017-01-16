@@ -76,6 +76,8 @@ class Attribute(object):
                 default = self.default()
             else:
                 default = self.default
+            # if not instance:
+            #     return self
             self.__set__(instance, default)
             return default
 
@@ -98,7 +100,7 @@ class Attribute(object):
         return unicode
 
     def acceptable_types(self):
-        return (basestring, dict, list)
+        return (basestring, dict, list, float, int, set)
 
     def validate(self, instance):
         val = getattr(instance, self.name)
@@ -463,3 +465,8 @@ class SetField(Attribute):
 
         if errors:
             raise FieldValidationError(errors)
+
+
+Fields = (Attribute, CharField, IntegerField, FloatField,
+          DateTimeField, DateField, TimeDeltaField, BooleanField,
+          ListField, DictField, SetField)

@@ -4,6 +4,7 @@ from .fields import Attribute
 from .errors import FieldValidationError
 from .adapter import Table
 from .helpers import get_items_for_storage
+from .query import Query
 
 
 def _initialize_attributes(model_class, name, bases, attrs):
@@ -114,8 +115,9 @@ class ModelBase(object):
         return Table(self).delete_item()
 
     @classmethod
-    def query(cls):
-        pass
+    def query(cls, *args):
+        instance = cls()
+        return Query(instance, *args)
 
     @classmethod
     def scan(cls):
@@ -136,6 +138,7 @@ class Model(ModelBase):
 
     def __init__(self, **kwargs):
         self.update_attributes(**kwargs)
+        self.projections = []
 
     def is_valid(self):
         """
@@ -226,11 +229,13 @@ class Model(ModelBase):
         Returns a dict with models attribute name as keys
         and attribute descriptors as values.
         """
+        # print self._attributes
         return dict(self._attributes)
 
     @property
     def fields(self):
         """Returns the list of field names of the model."""
+        print self.attributes.values()
         return self.attributes.values()
 
     def _get_values_for_read(self, values):
