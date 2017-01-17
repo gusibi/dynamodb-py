@@ -277,25 +277,25 @@ class Table(object):
         except ConnectionError:
             raise Exception('Connection refused')
 
-    def _get_primary_key(self):
+    def _get_primary_key(self, **kwargs):
         hash_key, range_key = self.instance._hash_key, self.instance._range_key
         key = {
-            hash_key: getattr(self.instance, hash_key)
+            hash_key: kwargs.get(hash_key) or getattr(self.instance, hash_key)
         }
-        _range_key = getattr(self.instance, range_key, None)
+        _range_key = kwargs.get(range_key) or getattr(self.instance, range_key, None)
         if range_key and not _range_key:
             raise Exception('Invalid range key value type')
         elif range_key:
             key[range_key] = _range_key
         return key
 
-    def get(self):
+    def get_item(self, **kwargs):
         """
         primary_key: params: primary_key dict
         """
-        key = self._get_primary_key()
+        kwargs['Key'] = kwargs.get('Key') or self._get_primary_key()
         try:
-            response = self.table.get_item(Key=key)
+            response = self.table.get_item(**kwargs)
         except ClientError as e:
             raise Exception(e.response['Error']['Message'])
         else:
@@ -308,6 +308,7 @@ class Table(object):
         """
         _primary_keys = []
         for primary_key in primary_keys:
+            print primary_key
             key = self._get_primary_key(**primary_key)
             _primary_keys.append(key)
         params = {
@@ -342,8 +343,39 @@ class Table(object):
         except ClientError as e:
             raise Exception(e.response['Error']['Message'])
 
-    def scan(self):
-        return self.table.scan()
+    def query(self, **kwargs):
+        """
+        response = table.query(
+            IndexName='string',
+            Select='ALL_ATTRIBUTES'|'ALL_PROJECTED_ATTRIBUTES'|'SPECIFIC_ATTRIBUTES'|'COUNT',
+            Limit=123,
+            ConsistentRead=True|False,
+            ScanIndexForward=True|False,
+            ExclusiveStartKey={
+                'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
+            },
+            ReturnConsumedCapacity='INDEXES'|'TOTAL'|'NONE',
+            ProjectionExpression='string',
+            FilterExpression=Attr('myattribute').eq('myvalue'),
+            KeyConditionExpression=Key('mykey').eq('myvalue'),
+            ExpressionAttributeNames={
+                'string': 'string'
+            },
+            ExpressionAttributeValues={
+                'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
+            }
+        )
+        """
+        try:
+            response = self.table.query(**kwargs)
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
+        else:
+            items = response['Items']
+        return items
+
+    def scan(self, **kwargs):
+        return self.table.scan(**kwargs)
 
     def delete_item(self, **kwargs):
         '''

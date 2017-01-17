@@ -10,6 +10,7 @@ from datetime import datetime, date, timedelta
 
 from .errors import FieldValidationError
 from .helpers import str_time, str_to_time
+from .expression import Expression
 
 
 __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
@@ -33,7 +34,7 @@ class DecimalEncoder(json.JSONEncoder):
         return super(DecimalEncoder, self).default(o)
 
 
-class Attribute(object):
+class Attribute(Expression):
     """Defines an attribute of the model.
     The attribute accepts strings and are stored in DynamoDB as
     they are - strings.
@@ -58,7 +59,9 @@ class Attribute(object):
                  required=False,
                  validator=None,
                  unique=False,
-                 default=None):
+                 default=None,
+                 **kwargs):
+        super(Attribute, self).__init__(**kwargs)
         self.name = name
         self.unique = unique
         self.indexed = indexed
@@ -76,8 +79,8 @@ class Attribute(object):
                 default = self.default()
             else:
                 default = self.default
-            # if not instance:
-            #     return self
+            if not instance:
+                return self
             self.__set__(instance, default)
             return default
 

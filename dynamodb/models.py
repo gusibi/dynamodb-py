@@ -85,7 +85,7 @@ class ModelBase(object):
     @classmethod
     def get(cls, **primary_key):
         instance = cls(**primary_key)
-        item = Table(instance).get()
+        item = Table(instance).get_item()
         if not item:
             return None
         value_for_read = instance._get_values_for_read(item)
@@ -235,7 +235,6 @@ class Model(ModelBase):
     @property
     def fields(self):
         """Returns the list of field names of the model."""
-        print self.attributes.values()
         return self.attributes.values()
 
     def _get_values_for_read(self, values):
