@@ -104,22 +104,24 @@ def query():
     for i in xrange(20, 40):
         Test.create(realname='gs100',
                     score=i, order_score=i,
+                    category=str(i),
                     date_created=now)
 
-    query = Test.query(Test.realname, Test.score, Test.order_score)
+    query = Test.query(Test.realname, Test.score, Test.order_score, Test.category)
     # item = query.get(realname='gs100', score=34)
     # print item
     # item = query.consistent.get(realname='gs100', score=33)
     # print item
-    query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
-    items = query.all()
-    for item in items:
-        print item
+    # query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
+    # items = query.all()
+    # for item in items:
+    #     print item
 
-    query = query.where(Test.realname.eq('gs100'), Test.score.between(21, 24))
+    query = query.where(Test.realname.eq('gs100'), Test.score.between(21, 34))
     items = query.limit(2).all()
     for item in items:
         print item
+    print query.first()
 
 
 def main():

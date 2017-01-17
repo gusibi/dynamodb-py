@@ -370,12 +370,15 @@ class Table(object):
             response = self.table.query(**kwargs)
         except ClientError as e:
             raise Exception(e.response['Error']['Message'])
-        else:
-            items = response['Items']
-        return items
+        return response
 
     def scan(self, **kwargs):
-        return self.table.scan(**kwargs)
+        try:
+            response = self.table.scan(**kwargs)
+            print response
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
+        return response
 
     def delete_item(self, **kwargs):
         '''

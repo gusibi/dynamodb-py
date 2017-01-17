@@ -16,6 +16,7 @@ class Query(object):
         self.ReturnConsumedCapacity = 'NONE'  # 'INDEXES'|'TOTAL'|'NONE'
         self.ConsistentRead = False
         self.FilterExpression = None
+        self.ExclusiveStartKey = None  # 起始查询的key，就是上一页的最后一条数据
         self.KeyConditionExpression = None
         self.ExpressionAttributeNames = {}
         self.ExpressionAttributeValues = {}
@@ -25,6 +26,8 @@ class Query(object):
         self.Select = 'ALL_ATTRIBUTES'  # 'ALL_ATTRIBUTES'|'ALL_PROJECTED_ATTRIBUTES'|'SPECIFIC_ATTRIBUTES'|'COUNT'
         self.Limit = None
         self.query_params = {}
+        self.scaned_count = 0
+        self.count = 0
 
     @property
     def consistent(self):
@@ -134,9 +137,19 @@ class Query(object):
         self.query_params['Limit'] = limit
         return self
 
+    def first(self):
+        self.query_params['Limit'] = 1
+        items = self.all()
+        return items[0] if items else None
+
     def all(self):
         if self.Scan:
             response = Table(self.instance).scan(**self.query_params)
         else:
             response = Table(self.instance).query(**self.query_params)
-        return response
+        items = response['Items']
+        count = response['Count']
+        scanned_count = response['ScannedCount']
+        self.count = count
+        self.scanned_count = scanned_count
+        return items
