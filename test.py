@@ -13,14 +13,14 @@ from dynamodb.adapter import Table
 class Test(Model):
 
     __table_name__ = 'test'
-    ReadCapacityUnits = 1
-    WriteCapacityUnits = 1
+    ReadCapacityUnits = 10
+    WriteCapacityUnits = 10
 
     realname = CharField(name='realname', hash_key=True)
     score = IntegerField(name='score', range_key=True)
-    order_score = FloatField(name='order_score')
+    order_score = FloatField(name='order_score', indexed=True)
     category = CharField(name='category', default=' ')
-    date_created = DateTimeField(name='date_created')
+    date_created = DateTimeField(name='date_created', indexed=True)
     ids = ListField(name='ids', default=[])
     doc = DictField(name='doc', default={})
 
@@ -93,10 +93,11 @@ def batch_add_and_get_item():
 
 
 def init_data():
-    for i in xrange(20, 40):
-        print i
+    for i in xrange(200000, 300000):
+        if i % 100 == 0:
+            print i
         Test.create(realname='gs%s' % i,
-                    score=i, order_score=99.99,
+                    score=i, order_score=i,
                     date_created=now)
 
 
@@ -124,17 +125,41 @@ def query():
     print query.first()
 
 
+def scan():
+    # for i in xrange(200, 240):
+    #     Test.create(realname='gs200',
+    #                 score=i, order_score=i,
+    #                 category=str(i),
+    #                 date_created=now)
+
+    query = Test.query(Test.realname, Test.score, Test.order_score, Test.category)
+    # item = query.get(realname='gs100', score=34)
+    # print item
+    # item = query.consistent.get(realname='gs100', score=33)
+    # print item
+    # query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
+    # items = query.all()
+    # for item in items:
+    #     print item
+
+    query = query.scan.where(Test.order_score.between(200, 234))
+    items = query.limit(2).all()
+    for item in items:
+        print item
+
+
 def main():
     # delete_table()
     # create_table()
-    # show_table()
-    # update_table()
+    show_table()
+    update_table()
     # show_table()
     # create_and_get_item()
     # batch_add_and_get_item()
     # delete_item()
     # init_data()
-    query()
+    # query()
+    # scan()
 
 
 if __name__ == '__main__':

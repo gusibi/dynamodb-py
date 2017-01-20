@@ -36,10 +36,10 @@ def str_to_time(s):
 
 
 def get_attribute_type(attribute):
-    from .fields import CharField, IntegerField
-    if isinstance(attribute, CharField):
+    from .fields import CharField, IntegerField, DateTimeField, FloatField
+    if isinstance(attribute, (CharField, DateTimeField)):
         return 'S'
-    elif isinstance(attribute, IntegerField):
+    elif isinstance(attribute, (IntegerField, FloatField)):
         return 'N'
     else:
         raise TypeError('bad type')

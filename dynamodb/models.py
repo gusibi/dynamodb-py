@@ -27,12 +27,12 @@ def _initialize_attributes(model_class, name, bases, attrs):
             v.name = v.name or k
 
 
-def _initialize_indices(model_class, name, bases, attrs):
+def _initialize_indexes(model_class, name, bases, attrs):
     """
     Stores the list of indexed attributes.
     """
-    model_class._indexed_fields = []
-    model_class._indexed_unique_fields = model_class.__unique_index__
+    model_class._local_indexed_fields = []
+    model_class._global_indexed_fields = model_class.__global_index__
     model_class._hash_key = None
     model_class._range_key = None
     for parent in bases:
@@ -40,12 +40,12 @@ def _initialize_indices(model_class, name, bases, attrs):
             continue
         for k, v in parent._attributes.iteritems():
             if v.indexed:
-                model_class._indexed_fields.append(k)
+                model_class._local_indexed_fields.append(k)
 
     for k, v in attrs.iteritems():
         if isinstance(v, (Attribute,)):
             if v.indexed:
-                model_class._indexed_fields.append(k)
+                model_class._local_indexed_fields.append(k)
             elif v.range_key:
                 model_class._range_key = k
             elif v.hash_key:
@@ -61,13 +61,14 @@ class ModelMetaclass(type):
     """
 
     __table_name__ = None
-    __unique_index__ = []
+    __global_index__ = []
+    __local_index__ = {}
 
     def __init__(cls, name, bases, attrs):
         super(ModelMetaclass, cls).__init__(name, bases, attrs)
         name = cls.__table_name__ or name
         _initialize_attributes(cls, name, bases, attrs)
-        _initialize_indices(cls, name, bases, attrs)
+        _initialize_indexes(cls, name, bases, attrs)
 
 
 class ModelBase(object):

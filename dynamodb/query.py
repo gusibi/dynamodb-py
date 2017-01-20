@@ -142,14 +142,40 @@ class Query(object):
         items = self.all()
         return items[0] if items else None
 
+    def _yield_all(self, method):
+        if method == 'scan':
+            func = getattr(Table(self.instance), 'scan')
+        elif method == 'query':
+            func = getattr(Table(self.instance), 'query')
+        else:
+            return
+        result_count = 0
+        response = func(**self.query_params)
+        while True:
+            metadata = response.get('ResponseMetadata', {})
+            for item in response['Items']:
+                result_count += 1
+                yield item
+                if self.Limit > 0 and result_count >= self.Limit:
+                    return
+            LastEvaluatedKey = response.get('LastEvaluatedKey')
+            if LastEvaluatedKey:
+                self.query_params['ExclusiveStartKey'] = LastEvaluatedKey
+                response = func(**self.query_params)
+            else:
+                break
+
+    def _yield(self):
+        if self.Scan:
+            return self._yield_all('scan')
+        else:
+            return self._yield_all('query')
+
     def all(self):
         if self.Scan:
-            response = Table(self.instance).scan(**self.query_params)
+            func = getattr(Table(self.instance), 'scan')
+            return self._yield_all('scan')
         else:
-            response = Table(self.instance).query(**self.query_params)
-        items = response['Items']
-        count = response['Count']
-        scanned_count = response['ScannedCount']
-        self.count = count
-        self.scanned_count = scanned_count
-        return items
+            func = getattr(Table(self.instance), 'query')
+        response = func(**self.query_params)
+        return response['Items']

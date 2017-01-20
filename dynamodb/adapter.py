@@ -7,7 +7,6 @@ from botocore.vendored.requests.exceptions import ConnectionError
 
 from .connection import db_local as db
 from .helpers import get_attribute_type
-# from dynamodb.connection import db
 
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
@@ -29,20 +28,33 @@ class Table(object):
             table_info = response['Table']
         return table_info
 
-    def _prepare_key_schema(self):
-        KeySchema = []
+    def _prepare_hash_key(self):
         hash_key = self.instance._hash_key
-        KeySchema.append({
+        param = {
             'AttributeName': hash_key,
             'KeyType': 'HASH'
-        })
-        range_key = self.instance._range_key
+        }
+        return param
+
+    def _prepare_range_key(self, range_key=None):
+        if not range_key:
+            range_key = self.instance._range_key
         if range_key:
-            KeySchema.append({
+            param = {
                 'AttributeName': range_key,
                 'KeyType': 'RANGE'
-            })
-        return {'KeySchema': KeySchema}
+            }
+            return param
+        return {}
+
+    def _prepare_key_schema(self):
+        KeySchema = []
+        hash_key_param = self._prepare_hash_key()
+        KeySchema.append(hash_key_param)
+        range_key_param = self._prepare_range_key()
+        if range_key_param:
+            KeySchema.append(range_key_param)
+        return KeySchema
 
     def _prepare_attribute_definitions(self):
         AttributeDefinitions = []
@@ -58,17 +70,38 @@ class Table(object):
                 'AttributeName': range_key,
                 'AttributeType': get_attribute_type(attributes[range_key]),
             })
-        return {'AttributeDefinitions': AttributeDefinitions}
+        for field in self.instance._local_indexed_fields:
+            AttributeDefinitions.append({
+                'AttributeName': field,
+                'AttributeType': get_attribute_type(attributes[field]),
+            })
+        return AttributeDefinitions
 
     def _prepare_primary_key(self, params):
-        key_schema = self._prepare_key_schema()
-        params.update(key_schema)
-        attribute_definitions = self._prepare_attribute_definitions()
-        params.update(attribute_definitions)
+        params['KeySchema'] = self._prepare_key_schema()
+        params['AttributeDefinitions'] = self._prepare_attribute_definitions()
         return params
 
-    def _prepare_indeics(self, table_params):
-        return table_params
+    def _prepare_local_indexes(self):
+        indexes = []
+        for field in self.instance._local_indexed_fields:
+            index_name = '{table_name}_ix_{field}'.format(
+                table_name=self.table_name, field=field)
+            KeySchema = [self._prepare_hash_key()]
+            range_key_param = self._prepare_range_key(field)
+            if range_key_param:
+                KeySchema.append(range_key_param)
+            indexes.append({
+                'IndexName': index_name,
+                'KeySchema': KeySchema,
+                'Projection': {
+                    'ProjectionType': 'ALL'
+                }
+            })
+        return indexes
+
+    def _prepare_global_indexes(self):
+        return []
 
     def _prepare_create_table_params(self):
         # TableName
@@ -77,13 +110,19 @@ class Table(object):
         }
         # KeySchema && AttributeDefinitions
         table_params = self._prepare_primary_key(table_params)
+        # LocalSecondaryIndexes
+        local_indexes = self._prepare_local_indexes()
+        if local_indexes:
+            table_params['LocalSecondaryIndexes'] = local_indexes
+        # GlobalSecondaryIndexes
+        global_indexes = self._prepare_global_indexes()
+        if global_indexes:
+            table_params['GlobalSecondaryIndexes'] = global_indexes
         # ProvisionedThroughput
         table_params['ProvisionedThroughput'] = {
             'ReadCapacityUnits': self.instance.ReadCapacityUnits,
             'WriteCapacityUnits': self.instance.WriteCapacityUnits
         }
-        # Index
-        table_params = self._prepare_indeics(table_params)
         return table_params
 
     def create(self):
@@ -167,8 +206,8 @@ class Table(object):
         try:
             params = self._prepare_create_table_params()
             return db.create_table(**params)
-        except ClientError:
-            raise Exception('Cannot create preexisting table')
+        except ClientError as e:
+            raise Exception(e.response['Error']['Message'])
         except ConnectionError:
             raise Exception('Connection refused')
 
@@ -308,7 +347,6 @@ class Table(object):
         """
         _primary_keys = []
         for primary_key in primary_keys:
-            print primary_key
             key = self._get_primary_key(**primary_key)
             _primary_keys.append(key)
         params = {
@@ -375,7 +413,6 @@ class Table(object):
     def scan(self, **kwargs):
         try:
             response = self.table.scan(**kwargs)
-            print response
         except ClientError as e:
             raise Exception(e.response['Error']['Message'])
         return response
