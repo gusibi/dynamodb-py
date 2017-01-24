@@ -229,10 +229,6 @@ class Table(object):
         # TODO
         pass
 
-    def _update_local_indices(self):
-        # TODO
-        pass
-
     def update(self):
         '''
         # update table
@@ -403,6 +399,17 @@ class Table(object):
                 'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
             }
         )
+        ConsistentRead: 是否使用强制一致性 默认False
+        ScanIndexForward: 索引的排序方式 True 为正序 False 为倒序 默认True
+        ReturnConsumedCapacity: DynamoDB 将返回条件写入期间使用的写入容量单位数
+            TOTAL 会返回由表及其所有global secondary index占用的写入容量；
+            INDEXES 仅返回由global secondary index占用的写入容量；
+            NONE 表示您不需要返回任何占用容量统计数据。
+        ProjectionExpression: 用于指定要在扫描结果中包含的属性
+        FilterExpression: 指定一个条件，以便仅返回符合条件的项目
+        KeyConditionExpression: 要查询的键值
+        ExpressionAttributeNames: 提供名称替换功能
+        ExpressionAttributeValues: 提供值替换功能
         """
         try:
             response = self.table.query(**kwargs)
@@ -440,16 +447,6 @@ class Table(object):
         response = table.delete_item(
             Key={
                 'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
-            },
-            Expected={
-                'string': {
-                    'Value': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{},
-                    'Exists': True|False,
-                    'ComparisonOperator': 'EQ'|'NE'|'IN'|'LE'|'LT'|'GE'|'GT'|'BETWEEN'|'NOT_NULL'|'NULL'|'CONTAINS'|'NOT_CONTAINS'|'BEGINS_WITH',
-                    'AttributeValueList': [
-                        'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{},
-                    ]
-                }
             },
             ConditionalOperator='AND'|'OR',
             ReturnValues='NONE'|'ALL_OLD'|'UPDATED_OLD'|'ALL_NEW'|'UPDATED_NEW',

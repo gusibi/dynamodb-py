@@ -32,7 +32,9 @@ def _initialize_indexes(model_class, name, bases, attrs):
     Stores the list of indexed attributes.
     """
     model_class._local_indexed_fields = []
+    model_class._local_indexes = {}
     model_class._global_indexed_fields = model_class.__global_index__
+    model_class._global_indexes = {}
     model_class._hash_key = None
     model_class._range_key = None
     for parent in bases:
@@ -40,12 +42,15 @@ def _initialize_indexes(model_class, name, bases, attrs):
             continue
         for k, v in parent._attributes.iteritems():
             if v.indexed:
+                print model_class, k
                 model_class._local_indexed_fields.append(k)
 
     for k, v in attrs.iteritems():
         if isinstance(v, (Attribute,)):
             if v.indexed:
                 model_class._local_indexed_fields.append(k)
+                model_class._local_indexes[k] = '{table_name}_ix_{field}'.format(
+                    table_name=name, field=k)
             elif v.range_key:
                 model_class._range_key = k
             elif v.hash_key:

@@ -101,7 +101,7 @@ def init_data():
                     date_created=now)
 
 
-def query():
+def query_without_index():
     for i in xrange(20, 40):
         Test.create(realname='gs100',
                     score=i, order_score=i,
@@ -118,11 +118,29 @@ def query():
     # for item in items:
     #     print item
 
-    query = query.where(Test.realname.eq('gs100'), Test.score.between(21, 34))
-    items = query.limit(2).all()
+    query = query.where(Test.realname.eq('gs100'),
+                        Test.order_score.between(22, 26))
+    items = query.limit(3).all()
+    print 'itmes filter by without index'
     for item in items:
         print item
-    print query.first()
+
+
+def query_with_index():
+    for i in xrange(20, 40):
+        Test.create(realname='gs100',
+                    score=i, order_score=i,
+                    category=str(i),
+                    date_created=now)
+
+    _query = Test.query(Test.realname, Test.score, Test.order_score, Test.category)
+    query = (_query
+             .where(Test.realname.eq('gs100'), Test.order_score.between(22, 26))
+             .order_by(Test.order_score, asc=True))
+    print 'itmes filter by without index'
+    items = query.limit(3).all()
+    for item in items:
+        print item
 
 
 def scan():
@@ -151,14 +169,15 @@ def scan():
 def main():
     # delete_table()
     # create_table()
-    show_table()
-    update_table()
+    # show_table()
+    # update_table()
     # show_table()
     # create_and_get_item()
     # batch_add_and_get_item()
     # delete_item()
     # init_data()
-    # query()
+    query_without_index()
+    query_with_index()
     # scan()
 
 

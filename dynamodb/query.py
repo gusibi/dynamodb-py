@@ -13,7 +13,7 @@ class Query(object):
         self.model_class = self.model_object.__class__
         self.instance = self.model_class()
         self.ProjectionExpression = self._projection_expression(*args)
-        self.ReturnConsumedCapacity = 'NONE'  # 'INDEXES'|'TOTAL'|'NONE'
+        self.ReturnConsumedCapacity = 'TOTAL'  # 'INDEXES'|'TOTAL'|'NONE'
         self.ConsistentRead = False
         self.FilterExpression = None
         self.ExclusiveStartKey = None  # 起始查询的key，就是上一页的最后一条数据
@@ -25,9 +25,11 @@ class Query(object):
         self.IndexName = None
         self.Select = 'ALL_ATTRIBUTES'  # 'ALL_ATTRIBUTES'|'ALL_PROJECTED_ATTRIBUTES'|'SPECIFIC_ATTRIBUTES'|'COUNT'
         self.Limit = None
-        self.query_params = {}
         self.scaned_count = 0
         self.count = 0
+        self.query_params = {}
+        self.filter_args = []   # filter expression args
+        self.filter_index_field = None  # index field name
 
     @property
     def consistent(self):
@@ -65,6 +67,63 @@ class Query(object):
             key[range_key] = _range_key
         return key
 
+    def _filter_expression(self, *args):
+        # get filter expression and key condition expression
+        FilterExpression = None
+        KeyConditionExpression = None
+        params = {}
+        for field_inst, exp, is_key in args:
+            # field_inst = field_instance
+            if field_inst.name == self.filter_index_field:
+                _, exp, is_key = field_inst._expression_func(
+                    field_inst.op, *field_inst.express_args, use_key=True)
+            if is_key:
+                if not KeyConditionExpression:
+                    KeyConditionExpression = exp
+                else:
+                    KeyConditionExpression = KeyConditionExpression & exp
+            else:
+                if not FilterExpression:
+                    FilterExpression = exp
+                else:
+                    FilterExpression = FilterExpression & exp
+        if FilterExpression:
+            params['FilterExpression'] = FilterExpression
+        if KeyConditionExpression:
+            params['KeyConditionExpression'] = KeyConditionExpression
+        return params
+
+    def _get_query_params(self):
+        # get filter params
+        params = {}
+        # update filter expression
+        filter_params = self._filter_expression(*self.filter_args)
+        FilterExpression = filter_params.get('FilterExpression')
+        if FilterExpression:
+            params['FilterExpression'] = FilterExpression
+        KeyConditionExpression = filter_params.get('KeyConditionExpression')
+        if KeyConditionExpression:
+            params['KeyConditionExpression'] = KeyConditionExpression
+        if self.ProjectionExpression:
+            params['ProjectionExpression'] = self.ProjectionExpression
+        if self.ConsistentRead:
+            params['ConsistentRead'] = self.ConsistentRead
+        if self.ReturnConsumedCapacity:
+            params['ReturnConsumedCapacity'] = self.ReturnConsumedCapacity
+        self.query_params.update(params)
+        return self.query_params
+
+    def where(self, *args):
+        # Find by any number of matching criteria... though presently only
+        # "where" is supported.
+        self.filter_args = args
+        return self
+
+    def limit(self, limit):
+        self.Limit = limit
+        self.query_params['Limit'] = limit
+        return self
+
     def _get_item_params(self):
         params = {
             'Key': self._get_primary_key()
@@ -85,62 +144,24 @@ class Query(object):
         value_for_read = self.instance._get_values_for_read(item)
         return value_for_read
 
-    def _filter_expression(self, *args):
-        # get filter expression and key condition expression
-        FilterExpression = None
-        KeyConditionExpression = None
-        params = {}
-        for exp, is_key in args:
-            if is_key:
-                if not KeyConditionExpression:
-                    KeyConditionExpression = exp
-                else:
-                    KeyConditionExpression = KeyConditionExpression & exp
-            else:
-                if not FilterExpression:
-                    FilterExpression = exp
-                else:
-                    FilterExpression = FilterExpression & exp
-        if FilterExpression:
-            params['FilterExpression'] = FilterExpression
-            self.FilterExpression = FilterExpression
-        if KeyConditionExpression:
-            params['KeyConditionExpression'] = KeyConditionExpression
-            self.KeyConditionExpression = KeyConditionExpression
-        return params
-
-    def _get_filter_params(self):
-        # get filter params
-        params = {}
-        if self.ProjectionExpression:
-            params['ProjectionExpression'] = self.ProjectionExpression
-        if self.ConsistentRead:
-            params['ConsistentRead'] = self.ConsistentRead
-        if self.FilterExpression:
-            params['FilterExpression'] = self.FilterExpression
-        if self.KeyConditionExpression:
-            params['KeyConditionExpression'] = self.KeyConditionExpression
-        return params
-
-    def where(self, *args):
-        # Find by any number of matching criteria... though presently only
-        # "where" is supported.
-        self._filter_expression(*args)
-        self.query_params = self._get_filter_params()
-        return self
-
-    def order_by(self, *args):
-        return self
-
-    def limit(self, limit):
-        self.Limit = limit
-        self.query_params['Limit'] = limit
-        return self
-
     def first(self):
-        self.query_params['Limit'] = 1
-        items = self.all()
+        items = self.limit(1).all()
         return items[0] if items else None
+
+    def order_by(self, index_field, asc=True):
+        if isinstance(index_field, Fields):
+            name = index_field.name
+            index_name = self.instance._local_indexes.get(name)
+            if not index_name:
+                raise Exception('index not found')
+            self.filter_index_field = name
+            self.query_params.update({
+                'IndexName': index_name,
+                'ScanIndexForward': asc
+            })
+        else:
+            raise Exception('%s not a field')
+        return self
 
     def _yield_all(self, method):
         if method == 'scan':
@@ -172,6 +193,7 @@ class Query(object):
             return self._yield_all('query')
 
     def all(self):
+        self._get_query_params()
         if self.Scan:
             func = getattr(Table(self.instance), 'scan')
             return self._yield_all('scan')
