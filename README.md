@@ -10,9 +10,14 @@ DynamoDB is not like other document-based databases you might know, and is very 
 * boto3
 * pytz
 * dateutil
+* simplejson
 ```
 
 ## Installation
+
+```
+pip install git+https://github.com/gusibi/dynamodb-py.git@master
+```
 
 ## Setup
 
@@ -21,26 +26,32 @@ DynamoDB is not like other document-based databases you might know, and is very 
 ynamodb-py has some sensible defaults for you when you create a new table, including the table name and the primary key column. But you can change those if you like on table creation.
 
 ```
-from dynomadb import Model
-from dynomadb.adapter import Table
+from dynamodb.models import Model
+from dynamodb.fields import CharField, IntegerField, FloatField, DictField
+from dynamodb.adapter import Table
 
+class Movies(Model):
 
-class Test(Model):
+    __table_name__ = 'Movies'
 
-    __table_name__ = 'test'
+    ReadCapacityUnits = 10
+    WriteCapacityUnits = 10
 
-    ReadCapacityUnits = 100
-    WriteCapacityUnits = 120
-
-    name = CharField(name='name', hash_key=True)
-    score = IntegerField(name='score', range_key=True)
-
-# name and score is primary key
+    year = IntegerField(name='year', hash_key=True)
+    title = CharField(name='title', range_key=True)
+    rating = FloatField(name='rating', indexed=True)
+    rank = IntegerField(name='rank', indexed=True)
+    release_date = CharField(name='release_date')
+    info = DictField(name='info', default={})
 
 # create_table
+Table(Movies()).create()
 
-Table(Test()).create()
+# update_table
+Table(Movies()).update()
 
+# delete_table
+Table(Movies()).delete()
 ```
 
 ## Fields
@@ -79,23 +90,19 @@ Can store a list of unicode, int, float, as well as other dynamodb-py models.
 Can store a dict. 
 
 ```
-from dynomadb import Model
+class Movies(Model):
 
+    __table_name__ = 'Movies'
 
-class Test(Model):
+    ReadCapacityUnits = 10
+    WriteCapacityUnits = 10
 
-    __table_name__ = 'test'
-
-    ReadCapacityUnits = 100
-    WriteCapacityUnits = 120
-
-    name = CharField(name='name', hash_key=True)
-    score = IntegerField(name='score', range_key=True)
-    order_score = FloatField(name='order_score', default=0.0)
-    date = DateTimeField(name='date')
-    ids = ListField(name='ids', default=[])
-    doc = DictField(name='doc', default={})
-
+    year = IntegerField(name='year', hash_key=True)
+    title = CharField(name='title', range_key=True)
+    rating = FloatField(name='rating', indexed=True)
+    rank = IntegerField(name='rank', indexed=True)
+    release_date = CharField(name='release_date')
+    info = DictField(name='info', default={})
 ```
 
 You can optionally set a default value on a field using either a plain value or a lambda
@@ -103,72 +110,7 @@ You can optionally set a default value on a field using either a plain value or 
 
 ## Usage
 
-```
-def show_table():
-    table_info = Table(Test()).info()
-    print table_info
-    return table_info
-
-
-def create_table():
-    Table(Test()).create()
-
-
-def update_table():
-    Table(Test()).update()
-
-
-def delete_table():
-    Table(Test()).delete()
-
-
-def save_item():
-    test = Test(name='gs', score=100, order_score=99.99, date=now)
-    test.save()
-
-
-def create_and_get_item():
-    Test.create(name='gs1', score=100, order_score=99.99, date=now)
-    Test.create(name='gs2', score=100, order_score=99.99, date=now)
-    Test.create(name='gs4', score=100, order_score=99.99, date=now, ids=[1, 2,3])
-    Test.create(name='gs5', score=100, order_score=99.99, date=now, doc={'a': 1.1})
-    item1 = Test.get(name='gs1', score=100)
-    print item1.name, item1.ids, item1.doc
-
-
-def delete_item():
-    Test.create(name='gs6', score=100, order_score=99.99, date=now, ids=[1,2,4, 101], doc={'a': 1.1})
-    item6 = Test.get(name='gs6', score=100)
-    print item6.name, item6.ids, item6.doc
-    item6.delete()
-    print 'DeleteItem succeeded: >>>>>>>>>>>'
-    item6 = Test.get(name='gs6', score=100)
-    if item6:
-        print item6.name, item6.ids, item6.doc
-    else:
-        print 'item6 not found'
-
-
-def batch_add_and_get_item():
-    items = [
-        dict(name='gs7', score=90, order_score=90, date=now),
-        dict(name='gs7', score=90, order_score=90, date=now),
-        dict(name='gs8', score=91, order_score=91, date=now, doc={'a': 4}),
-        dict(name='gs9', score=92, order_score=92, date=now, ids=[9]),
-    ]
-    Test.batch_write(items, overwrite=True)
-    item8 = Test.get(name='gs8', score=91)
-    print item8.name, item8.ids, item8.doc, item8.score
-    primary_keys = [
-        {'name': 'gs8', 'score': 91},
-        {'name': 'gs9', 'score': 92},
-        {'name': 'gs9', 'score': 99},
-    ]
-    _items = Test.batch_get(*primary_keys)
-    for item in _items:
-        print item.name, item.score, item.order_score, type(item.doc)
-```
-
+[Example](https://github.com/gusibi/dynamodb-py/tree/master/example)
 
 ## Querying
 

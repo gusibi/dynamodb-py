@@ -399,6 +399,7 @@ class Table(object):
                 'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
             }
         )
+        ExclusiveStartKey: 起始查询的key，也就是上一页的最后一条数据
         ConsistentRead: 是否使用强制一致性 默认False
         ScanIndexForward: 索引的排序方式 True 为正序 False 为倒序 默认True
         ReturnConsumedCapacity: DynamoDB 将返回条件写入期间使用的写入容量单位数
@@ -470,3 +471,6 @@ class Table(object):
             if e.response['Error']['Code'] == "ConditionalCheckFailedException":
                 raise Exception(e.response['Error']['Message'])
         return True
+
+    def item_count(self):
+        return self.table.item_count

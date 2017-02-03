@@ -1,0 +1,12 @@
+Metadata-Version: 1.1
+Name: dynamodb-py
+Version: 0.1.1.12
+Summary: A simple DynamoDB ORM for python, based on boto3
+Home-page: https://github.com/gusibi/dynamodb-py
+Author: gusibi
+Author-email: cacique1103@gmail.com
+License: BSD
+Download-URL: https://github.com/gusibi/dynamodb-py/archive/master.zip
+Description: UNKNOWN
+Keywords: dynamodb,amazon,orm,database,nosql
+Platform: UNKNOWN

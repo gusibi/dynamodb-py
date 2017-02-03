@@ -1,5 +1,7 @@
 #! -*- coding: utf-8 -*-
 
+import copy
+
 from .adapter import Table
 from .fields import Fields
 from .errors import FieldValidationError
@@ -34,12 +36,12 @@ class Query(object):
     @property
     def consistent(self):
         self.ConsistentRead = True
-        return self
+        return copy.deepcopy(self)
 
     @property
     def scan(self):
         self.Scan = True
-        return self
+        return copy.deepcopy(self)
 
     def _projection_expression(self, *args):
         instance = self.model_object
@@ -117,12 +119,12 @@ class Query(object):
         # Find by any number of matching criteria... though presently only
         # "where" is supported.
         self.filter_args = args
-        return self
+        return copy.deepcopy(self)
 
     def limit(self, limit):
         self.Limit = limit
         self.query_params['Limit'] = limit
-        return self
+        return copy.deepcopy(self)
 
     def _get_item_params(self):
         params = {
@@ -161,7 +163,7 @@ class Query(object):
             })
         else:
             raise Exception('%s not a field')
-        return self
+        return copy.deepcopy(self)
 
     def _yield_all(self, method):
         if method == 'scan':

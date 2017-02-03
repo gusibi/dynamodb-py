@@ -28,6 +28,8 @@ def str_date(dt):
 
 def str_to_time(s):
     """str time to datetime"""
+    if not s:
+        return None
     try:
         dt = dateutil.parser.parse(s)
         return dt

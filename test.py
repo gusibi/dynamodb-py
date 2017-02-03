@@ -93,7 +93,7 @@ def batch_add_and_get_item():
 
 
 def init_data():
-    for i in xrange(200000, 300000):
+    for i in xrange(200000, 201000):
         if i % 100 == 0:
             print i
         Test.create(realname='gs%s' % i,
@@ -109,14 +109,14 @@ def query_without_index():
                     date_created=now)
 
     query = Test.query(Test.realname, Test.score, Test.order_score, Test.category)
-    # item = query.get(realname='gs100', score=34)
-    # print item
-    # item = query.consistent.get(realname='gs100', score=33)
-    # print item
-    # query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
-    # items = query.all()
-    # for item in items:
-    #     print item
+    item = query.get(realname='gs100', score=34)
+    print item
+    item = query.consistent.get(realname='gs100', score=33)
+    print item
+    query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
+    items = query.all()
+    for item in items:
+        print item
 
     query = query.where(Test.realname.eq('gs100'),
                         Test.order_score.between(22, 26))
@@ -167,18 +167,18 @@ def scan():
 
 
 def main():
-    # delete_table()
-    # create_table()
-    # show_table()
-    # update_table()
-    # show_table()
-    # create_and_get_item()
-    # batch_add_and_get_item()
-    # delete_item()
-    # init_data()
+    delete_table()
+    create_table()
+    show_table()
+    update_table()
+    show_table()
+    create_and_get_item()
+    batch_add_and_get_item()
+    delete_item()
+    init_data()
     query_without_index()
     query_with_index()
-    # scan()
+    scan()
 
 
 if __name__ == '__main__':

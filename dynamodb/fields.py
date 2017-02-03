@@ -4,10 +4,10 @@ dynamodb model fields
 '''
 from __future__ import unicode_literals
 
-import json
 import decimal
 from datetime import datetime, date, timedelta
 
+from .json_import import json
 from .errors import FieldValidationError
 from .helpers import str_time, str_to_time
 from .expression import Expression
@@ -376,14 +376,14 @@ class DictField(Attribute):
     def typecast_for_read(self, value):
         if value == '':
             return {}
-        value = json.loads(value)
+        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder))
         return value
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return {}
-        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
         return value
 
     def validate(self, instance):
@@ -410,14 +410,14 @@ class ListField(Attribute):
     def typecast_for_read(self, value):
         if not value:
             return []
-        value = json.loads(value)
+        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder))
         return value
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return []
-        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
         return value
 
     def validate(self, instance):
@@ -444,14 +444,14 @@ class SetField(Attribute):
     def typecast_for_read(self, value):
         if not value:
             return []
-        value = json.loads(value)
+        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder))
         return value
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return []
-        value = json.dumps(value, indent=4, cls=DecimalEncoder)
+        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
         return value
 
     def validate(self, instance):

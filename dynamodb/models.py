@@ -130,6 +130,11 @@ class ModelBase(object):
         instance = cls()
         return Table(instance).scan()
 
+    @classmethod
+    def item_count(cls):
+        instance = cls()
+        return Table(instance).item_count()
+
     def write(self):
         return Table(self).put_item(self.item)
 
@@ -259,7 +264,8 @@ class Model(ModelBase):
             raise FieldValidationError(self.errors)
         for attr, field in self.attributes.iteritems():
             value = getattr(self, attr)
-            data[attr] = field.typecast_for_storage(value)
+            if value is not None:
+                data[attr] = field.typecast_for_storage(value)
         return data
 
     @property
