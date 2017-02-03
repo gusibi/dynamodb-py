@@ -202,4 +202,11 @@ class Query(object):
         else:
             func = getattr(Table(self.instance), 'query')
         response = func(**self.query_params)
-        return response['Items']
+        items = response['Items']
+        results = []
+        for item in items:
+            _instance = self.model_class(**item)
+            value_for_read = _instance._get_values_for_read(item)
+            instance = self.model_class(**value_for_read)
+            results.append(instance)
+        return results

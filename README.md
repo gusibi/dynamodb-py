@@ -110,7 +110,7 @@ You can optionally set a default value on a field using either a plain value or 
 
 ## Usage
 
-[Example](https://github.com/gusibi/dynamodb-py/tree/master/example)
+[Example](https://github.com/gusibi/dynamodb-py/tree/master/examples)
 
 ## Querying
 

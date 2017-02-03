@@ -4,6 +4,7 @@
 DynamoDB KeyConditionExpression and FilterExpression
 '''
 
+from decimal import Decimal
 from boto3.dynamodb.conditions import Key, Attr
 
 from .errors import ValidationException
@@ -15,6 +16,9 @@ class Expression(object):
 
     def _expression_func(self, op, *args, **kwargs):
         # for use by index ... bad
+        print args, self.use_decimal_types
+        if self.use_decimal_types:
+            args = map(lambda x: Decimal(str(x)), args)
         self.op = op
         self.express_args = args
         use_key = kwargs.get('use_key', False)

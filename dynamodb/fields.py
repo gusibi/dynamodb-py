@@ -51,6 +51,8 @@ class Attribute(Expression):
                         attribute.
         default      -- Initial value of the attribute.
     """
+    use_decimal_types = False
+
     def __init__(self,
                  name=None,
                  hash_key=False,
@@ -213,6 +215,8 @@ class IntegerField(Attribute):
 
 
 class FloatField(Attribute):
+
+    use_decimal_types = True
 
     def typecast_for_read(self, value):
         return float(value)
