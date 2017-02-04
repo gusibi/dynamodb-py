@@ -26,9 +26,9 @@ pip install git+https://github.com/gusibi/dynamodb-py.git@master
 ynamodb-py has some sensible defaults for you when you create a new table, including the table name and the primary key column. But you can change those if you like on table creation.
 
 ```
-from dynamodb.models import Model
+from dynamodb.model import Model
 from dynamodb.fields import CharField, IntegerField, FloatField, DictField
-from dynamodb.adapter import Table
+from dynamodb.table import Table
 
 class Movies(Model):
 

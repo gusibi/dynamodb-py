@@ -4,10 +4,10 @@ from datetime import datetime
 
 import decimal
 
-from dynamodb.models import Model
+from dynamodb.model import Model
 from dynamodb.fields import (CharField, IntegerField, FloatField, Attribute,
                              DateTimeField, DictField, ListField)
-from dynamodb.adapter import Table
+from dynamodb.table import Table
 
 
 class Test(Model):

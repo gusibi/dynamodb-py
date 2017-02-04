@@ -2,7 +2,7 @@
 
 import copy
 
-from .adapter import Table
+from .table import Table
 from .fields import Fields
 from .errors import FieldValidationError
 

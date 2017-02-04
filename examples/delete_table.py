@@ -3,9 +3,9 @@
 from __future__ import print_function  # Python 2/3 compatibility
 import boto3
 
-from dynamodb.models import Model
+from dynamodb.model import Model
 from dynamodb.fields import (CharField, IntegerField, FloatField, DictField)
-from dynamodb.adapter import Table
+from dynamodb.table import Table
 
 '''
 创建一个名为 Movies 的表。表的主键由以下属性组成：

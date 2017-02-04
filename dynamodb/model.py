@@ -1,10 +1,10 @@
 #! -*- coding: utf-8 -*-
 
+from .table import Table
+from .query import Query
 from .fields import Attribute
 from .errors import FieldValidationError
-from .adapter import Table
 from .helpers import get_items_for_storage
-from .query import Query
 
 
 def _initialize_attributes(model_class, name, bases, attrs):

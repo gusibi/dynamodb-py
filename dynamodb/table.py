@@ -11,6 +11,8 @@ from .helpers import get_attribute_type
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
 
+__all__ = ['Table']
+
 
 class Table(object):
 

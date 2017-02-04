@@ -2,7 +2,7 @@
 
 from __future__ import print_function  # Python 2/3 compatibility
 
-from dynamodb.models import Model
+from dynamodb.model import Model
 from dynamodb.fields import (CharField, IntegerField, FloatField,
                              DateTimeField, DictField)
 
