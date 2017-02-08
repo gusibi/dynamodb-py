@@ -58,6 +58,14 @@ def create_and_get_item():
     Test.create(realname='gs5', score=100, order_score=99.99, date_created=now, doc={'a': 1.1})
 
 
+def create_and_update_item():
+    Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
+    item = Test.get(realname='gs1', score=100)
+    print item.realname, item.score, item.order_score
+    item.update(order_score=90.9)
+    print item.realname, item.score, item.order_score
+
+
 def delete_item():
     Test.create(realname='gs6', score=100, order_score=99.99, date_created=now, ids=[1,2,4, 101], doc={'a': 1.1})
     item6 = Test.get(realname='gs6', score=100)
@@ -167,18 +175,18 @@ def scan():
 
 
 def main():
-    delete_table()
-    create_table()
-    show_table()
-    update_table()
-    show_table()
-    create_and_get_item()
-    batch_add_and_get_item()
-    delete_item()
-    init_data()
-    query_without_index()
-    query_with_index()
-    scan()
+    # delete_table()
+    # create_table()
+    # show_table()
+    # update_table()
+    # show_table()
+    create_and_update_item()
+    # batch_add_and_get_item()
+    # delete_item()
+    # init_data()
+    # query_without_index()
+    # query_with_index()
+    # scan()
 
 
 if __name__ == '__main__':

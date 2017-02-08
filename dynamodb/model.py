@@ -1,4 +1,5 @@
 #! -*- coding: utf-8 -*-
+import copy
 
 from .table import Table
 from .query import Query
@@ -42,7 +43,6 @@ def _initialize_indexes(model_class, name, bases, attrs):
             continue
         for k, v in parent._attributes.iteritems():
             if v.indexed:
-                print model_class, k
                 model_class._local_indexed_fields.append(k)
 
     for k, v in attrs.iteritems():
@@ -86,7 +86,25 @@ class ModelBase(object):
         return instance.save()
 
     def update(self, **kwargs):
-        pass
+        update_fields = {}
+        params = {}
+        for k, v in kwargs.items():
+            if k in self.attributes:
+                update_fields[k] = v
+            else:
+                params[k] = v
+        if not self.validate_attrs(**update_fields):
+            raise FieldValidationError(self._errors)
+        # use storage value
+        for k, v in update_fields.items():
+            field = self.attributes[k]
+            update_fields[k] = field.typecast_for_storage(v)
+        item = Table(self).update_item(update_fields=update_fields, **kwargs)
+        value_for_read = self._get_values_for_read(item)
+        print value_for_read
+        for k, v in value_for_read.items():
+            setattr(self, k, v)
+        return self
 
     @classmethod
     def get(cls, **primary_key):
@@ -187,8 +205,10 @@ class Model(ModelBase):
         self._errors = []
         for attr, value in kwargs.iteritems():
             field = self.attributes.get(attr)
+            instance = copy.deepcopy(self)
+            setattr(instance, attr, value)
             try:
-                field.validate(self)
+                field.validate(instance)
             except FieldValidationError as e:
                 self._errors.extend(e.errors)
         return not bool(self._errors)

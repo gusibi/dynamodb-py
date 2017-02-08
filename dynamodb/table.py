@@ -227,7 +227,7 @@ class Table(object):
         # TODO
         pass
 
-    def _update_global_indices(self):
+    def _update_global_indexes(self):
         # TODO
         pass
 
@@ -404,7 +404,7 @@ class Table(object):
         ExclusiveStartKey: 起始查询的key，也就是上一页的最后一条数据
         ConsistentRead: 是否使用强制一致性 默认False
         ScanIndexForward: 索引的排序方式 True 为正序 False 为倒序 默认True
-        ReturnConsumedCapacity: DynamoDB 将返回条件写入期间使用的写入容量单位数
+        ReturnConsumedCapacity: DynamoDB 写入期间使用的写入容量单位
             TOTAL 会返回由表及其所有global secondary index占用的写入容量；
             INDEXES 仅返回由global secondary index占用的写入容量；
             NONE 表示您不需要返回任何占用容量统计数据。
@@ -426,6 +426,53 @@ class Table(object):
         except ClientError as e:
             raise Exception(e.response['Error']['Message'])
         return response
+
+    def _prepare_update_item_params(self, update_fields=None,  **kwargs):
+        params = {
+            'Key': self._get_primary_key()
+        }
+        ExpressionAttributeValues = {}
+        if update_fields:
+            set_expression_str = ''
+            for k, v in update_fields.items():
+                label = ':{k}'.format(k=k)
+                if set_expression_str:
+                    set_expression_str += ', {k} = {v}'.format(k=k, v=label)
+                else:
+                    set_expression_str += '{k} = {v}'.format(k=k, v=label)
+                ExpressionAttributeValues[label] = v
+            params['UpdateExpression'] = 'SET {}'.format(set_expression_str)
+            params['ExpressionAttributeValues'] = ExpressionAttributeValues
+            params['ReturnValues'] = 'ALL_NEW'
+        return params
+
+    def update_item(self, update_fields, **kwargs):
+        '''
+        update_fields: update_fields (dict)
+        http://boto3.readthedocs.io/en/stable/reference/services/dynamodb.html#DynamoDB.Table.update_item
+        response = table.update_item(
+            Key={
+                'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
+            },
+            ReturnValues='NONE'|'ALL_OLD'|'UPDATED_OLD'|'ALL_NEW'|'UPDATED_NEW',
+            ReturnConsumedCapacity='INDEXES'|'TOTAL'|'NONE',
+            ReturnItemCollectionMetrics='SIZE'|'NONE',
+            UpdateExpression='string',
+            ConditionExpression=Attr('myattribute').eq('myvalue'),
+            ExpressionAttributeNames={
+                'string': 'string'
+            },
+            ExpressionAttributeValues={
+                'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
+            }
+        )
+        ## example
+        item.update_item(a=12, b=12, c=12)
+        '''
+        params = self._prepare_update_item_params(update_fields, **kwargs)
+        item = self.table.update_item(**params)
+        attributes = item.get('Attributes')
+        return attributes
 
     def delete_item(self, **kwargs):
         '''
