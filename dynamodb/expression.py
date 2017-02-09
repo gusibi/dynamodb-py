@@ -16,7 +16,6 @@ class Expression(object):
 
     def _expression_func(self, op, *args, **kwargs):
         # for use by index ... bad
-        print args, self.use_decimal_types
         if self.use_decimal_types:
             args = map(lambda x: Decimal(str(x)), args)
         self.op = op
@@ -33,9 +32,20 @@ class Expression(object):
             raise ValidationException('Query key condition not supported')
         return self, func(*args), use_key
 
+    def _expression(self, op, value):
+        if self.use_decimal_types:
+            value = Decimal(str(value))
+        label = ':%s' % self.name
+        exp = '{name} {op} {value}'.format(name=self.name, op=op, value=label)
+        return exp, label, value
+
     def eq(self, value):
         # Creates a condition where the attribute is equal to the value.
         return self._expression_func('eq', value)
+
+    def _eq(self, value):
+        # Creates a condition where the attribute is equal to the value.
+        return self._expression('=', value)
 
     def lt(self, value):
         # Creates a condition where the attribute is less than the value.

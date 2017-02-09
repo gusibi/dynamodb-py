@@ -85,23 +85,55 @@ class ModelBase(object):
         instance = cls(**kwargs)
         return instance.save()
 
-    def update(self, **kwargs):
-        update_fields = {}
-        params = {}
-        for k, v in kwargs.items():
-            if k in self.attributes:
-                update_fields[k] = v
+    def condition(self, *args):
+        instance = copy.deepcopy(self)
+        ConditionExpression = None
+        ExpressionAttributeValues = {}
+        for field_inst, exp, is_key in args:
+            if is_key:
+                pass
             else:
-                params[k] = v
-        if not self.validate_attrs(**update_fields):
+                if not ConditionExpression:
+                    ConditionExpression = exp
+                else:
+                    ConditionExpression = ConditionExpression & exp
+        # for exp, label, value in args:
+        #     if not ConditionExpression:
+        #         ConditionExpression = exp
+        #     else:
+        #         ConditionExpression = '%s , %s' % (ConditionExpression, exp)
+        #     ExpressionAttributeValues[label] = value
+        instance.ConditionExpression = ConditionExpression
+        instance.ExpressionAttributeValues = ExpressionAttributeValues
+        return instance
+
+    def _prepare_update_item_params(self, **kwargs):
+        params = kwargs
+        ConditionExpression = getattr(self, 'ConditionExpression', None)
+        ExpressionAttributeValues = getattr(self, 'ExpressionAttributeValues', {})
+        if ConditionExpression:
+            params['ConditionExpression'] = ConditionExpression
+        if ExpressionAttributeValues:
+            params['ExpressionAttributeValues'] = ExpressionAttributeValues
+        return params
+
+    def update(self,
+               ReturnValues='ALL_NEW',
+               ReturnConsumedCapacity='NONE',
+               **kwargs):
+        update_fields = {}
+        params = self._prepare_update_item_params(
+            ReturnValues=ReturnValues,
+            ReturnConsumedCapacity=ReturnConsumedCapacity)
+        if not self.validate_attrs(**kwargs):
             raise FieldValidationError(self._errors)
-        # use storage value
-        for k, v in update_fields.items():
+        for k, v in kwargs.items():
             field = self.attributes[k]
             update_fields[k] = field.typecast_for_storage(v)
-        item = Table(self).update_item(update_fields=update_fields, **kwargs)
+        # use storage value
+        item = Table(self).update_item(
+            update_fields=update_fields, **params)
         value_for_read = self._get_values_for_read(item)
-        print value_for_read
         for k, v in value_for_read.items():
             setattr(self, k, v)
         return self
@@ -205,6 +237,8 @@ class Model(ModelBase):
         self._errors = []
         for attr, value in kwargs.iteritems():
             field = self.attributes.get(attr)
+            if not field:
+                raise Exception('Field not found: %s' % attr)
             instance = copy.deepcopy(self)
             setattr(instance, attr, value)
             try:

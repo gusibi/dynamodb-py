@@ -1,4 +1,5 @@
 #! -*- coding: utf-8 -*-
+from __future__ import print_function
 
 import pprint
 
@@ -431,7 +432,8 @@ class Table(object):
         params = {
             'Key': self._get_primary_key()
         }
-        ExpressionAttributeValues = {}
+        ExpressionAttributeValues = getattr(self.instance,
+                                            'ExpressionAttributeValues', {})
         if update_fields:
             set_expression_str = ''
             for k, v in update_fields.items():
@@ -443,7 +445,7 @@ class Table(object):
                 ExpressionAttributeValues[label] = v
             params['UpdateExpression'] = 'SET {}'.format(set_expression_str)
             params['ExpressionAttributeValues'] = ExpressionAttributeValues
-            params['ReturnValues'] = 'ALL_NEW'
+        params.update(kwargs)
         return params
 
     def update_item(self, update_fields, **kwargs):
@@ -470,9 +472,14 @@ class Table(object):
         item.update_item(a=12, b=12, c=12)
         '''
         params = self._prepare_update_item_params(update_fields, **kwargs)
-        item = self.table.update_item(**params)
-        attributes = item.get('Attributes')
-        return attributes
+        try:
+            item = self.table.update_item(**params)
+            attributes = item.get('Attributes')
+            return attributes
+        except ClientError as e:
+            if e.response['Error']['Code'] == "ConditionalCheckFailedException":
+                print(e.response['Error']['Message'])
+            raise Exception(e.response['Error']['Message'])
 
     def delete_item(self, **kwargs):
         '''

@@ -59,11 +59,15 @@ def create_and_get_item():
 
 
 def create_and_update_item():
-    Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
-    item = Test.get(realname='gs1', score=100)
-    print item.realname, item.score, item.order_score
-    item.update(order_score=90.9)
-    print item.realname, item.score, item.order_score
+    # Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
+    # item = Test.get(realname='gs1', score=100)
+    # print item.realname, item.score, item.order_score
+    # item.update(order_score=90.9)
+    # print item.realname, item.score, item.order_score
+    # item = Test(realname='gs1', score=100).update(order_score=20.0)
+    # print item.realname, item.score, item.order_score, item.date_created
+    item = Test(realname='gs1', score=100).condition(Test.order_score.eq(10.0)).update(date_created=now)
+    print item.realname, item.score, item.order_score, item.date_created
 
 
 def delete_item():
