@@ -14,6 +14,77 @@ __all__ = ['Expression']
 
 class Expression(object):
 
+    def set(self, value,
+            set_path=None,
+            attr_label=None,
+            if_not_exists=None,
+            list_append=None):
+        '''
+        parameters:
+            - value: value
+            - set_path: attr path if not use attr name
+            - attr_label: string attr label ex: label=':p'
+            - if_not_exists: (tuple) path, operand ex: (Price, 100)
+            - list_append: (tuple) path, index
+            ex: (#pr.FiveStar, -1) to last
+                (#pr.FiveStar, 0) to first
+        examples:
+            Test(realname='gs', score=100).update(Test.order_score.set(100))
+            Test(realname='gs', score=100).update(
+                Test.order_score.set(5, label=':p')
+            Test(realname='gs', score=100).update(
+                Test.order_score.set(100, is_not_exists=('order_score', 50)))
+            Test(realname='gs', score=100).update(
+                Test.ids.set(100, list_append=('ids')))
+            or
+            Test(realname='gs', score=100).update(
+                Test.ids.list_append(100))
+
+        return exp, {label: value}
+        '''
+        label = attr_label or ":{name}".format(name=self.name)
+        # ExpressionAttributeValues
+        if isinstance(value, float) or self.use_decimal_types:
+            value = Decimal(str(value))
+        eav = {label: value}
+        if if_not_exists:
+            path, operand = if_not_exists
+            if isinstance(operand, float):
+                operand = Decimal(str(operand))
+            eav[label] = operand
+            exp = 'SET {name} = if_not_exists({path}, {label})'.format(
+                name=self.name, path=path, label=label)
+        elif list_append:
+            path, index = list_append
+            if index == 0:
+                exp = "SET {path} = list_append({label}, {path})".format(
+                    path=path, label=label)
+            elif index == -1:
+                exp = "SET {path} = list_append({path}, {label})".format(
+                    path=path, label=label)
+            else:
+                raise ValidationException('index error')
+        else:
+            path = set_path or self.name
+            exp = 'SET {path} = {label}'.format(path=path, label=label)
+        return exp, eav, 'SET'
+
+    def remove(self, index=None, attr=None):
+        '''
+        parameters:
+            index: index ex: a[2] 2
+            attr: field attr ex: info = {'a': 1, 'b': 2} b
+        '''
+        pass
+
+    def add(self, value):
+        '''
+        support num and set
+        ADD Price :n    price += n
+        ADD Color :c
+        '''
+        pass
+
     def _expression_func(self, op, *args, **kwargs):
         # for use by index ... bad
         if self.use_decimal_types:

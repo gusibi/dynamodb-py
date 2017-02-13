@@ -428,12 +428,14 @@ class Table(object):
             raise Exception(e.response['Error']['Message'])
         return response
 
-    def _prepare_update_item_params(self, update_fields=None,  **kwargs):
+    def _prepare_update_item_params(self, update_fields=None, *args, **kwargs):
+        print(update_fields, args, kwargs)
         params = {
             'Key': self._get_primary_key()
         }
         ExpressionAttributeValues = getattr(self.instance,
                                             'ExpressionAttributeValues', {})
+        action_exp_dict = {}
         if update_fields:
             set_expression_str = ''
             for k, v in update_fields.items():
@@ -441,14 +443,24 @@ class Table(object):
                 if set_expression_str:
                     set_expression_str += ', {k} = {v}'.format(k=k, v=label)
                 else:
-                    set_expression_str += '{k} = {v}'.format(k=k, v=label)
+                    set_expression_str += 'SET {k} = {v}'.format(k=k, v=label)
                 ExpressionAttributeValues[label] = v
-            params['UpdateExpression'] = 'SET {}'.format(set_expression_str)
-            params['ExpressionAttributeValues'] = ExpressionAttributeValues
+            action_exp_dict['SET'] = set_expression_str
+        for arg in args:
+            exp, eav, action = arg
+            action_exp = action_exp_dict.get(action)
+            if action_exp:
+                action_exp += exp
+            else:
+                action_exp = exp
+            action_exp_dict[action] = action_exp
+            ExpressionAttributeValues.update(eav)
+        params['ExpressionAttributeValues'] = ExpressionAttributeValues
+        params['UpdateExpression'] = " ".join(action_exp_dict.values())
         params.update(kwargs)
         return params
 
-    def update_item(self, update_fields, **kwargs):
+    def update_item(self, update_fields, *args, **kwargs):
         '''
         update_fields: update_fields (dict)
         http://boto3.readthedocs.io/en/stable/reference/services/dynamodb.html#DynamoDB.Table.update_item
@@ -471,7 +483,8 @@ class Table(object):
         ## example
         item.update_item(a=12, b=12, c=12)
         '''
-        params = self._prepare_update_item_params(update_fields, **kwargs)
+        print(update_fields, args, kwargs)
+        params = self._prepare_update_item_params(update_fields, *args, **kwargs)
         try:
             item = self.table.update_item(**params)
             attributes = item.get('Attributes')

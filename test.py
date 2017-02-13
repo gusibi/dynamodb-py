@@ -59,15 +59,37 @@ def create_and_get_item():
 
 
 def create_and_update_item():
-    # Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
-    # item = Test.get(realname='gs1', score=100)
-    # print item.realname, item.score, item.order_score
-    # item.update(order_score=90.9)
-    # print item.realname, item.score, item.order_score
+    Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
+    item = Test.get(realname='gs1', score=100)
+    print item.realname, item.score, item.order_score
+    item.update(order_score=90.9)
+    print item.realname, item.score, item.order_score
     # item = Test(realname='gs1', score=100).update(order_score=20.0)
     # print item.realname, item.score, item.order_score, item.date_created
-    item = Test(realname='gs1', score=100).condition(Test.order_score.eq(10.0)).update(date_created=now)
-    print item.realname, item.score, item.order_score, item.date_created
+    # item = Test(realname='gs1', score=100).condition(Test.order_score.eq(10.0)).update(date_created=now)
+    # print item.realname, item.score, item.order_score, item.date_created
+
+
+def update_item_by_set():
+    Test.create(realname='gs01', score=100, order_score=99.99, date_created=now)
+    item = Test.get(realname='gs01', score=100)
+    item.update(Test.order_score.set(80))
+    print 'set'
+    assert item.order_score == 80
+    item.update(Test.order_score.set(78.7, attr_label=':os'))
+    print 'set with attr_label'
+    assert item.order_score == 78.7
+    item.update(Test.order_score.set(70, if_not_exists=('order_score', 78.7)))
+    print 'set with if_not_exists'
+    assert item.order_score == 78.7
+    item.update(Test.order_score.set(8, if_not_exists=('ids[0]', 10)))
+    assert item.order_score == 10
+    print 'ids', item.ids, type(item.ids)
+    item.update(ids=[12])
+    print 'ids', item.ids, type(item.ids)
+    item.update(Test.ids.set([100], list_append=('ids', -1)))
+    print 'set with list_append'
+    assert item.ids[-1] == 100
 
 
 def delete_item():
@@ -184,7 +206,8 @@ def main():
     # show_table()
     # update_table()
     # show_table()
-    create_and_update_item()
+    # create_and_update_item()
+    update_item_by_set()
     # batch_add_and_get_item()
     # delete_item()
     # init_data()

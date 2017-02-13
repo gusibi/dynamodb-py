@@ -97,12 +97,6 @@ class ModelBase(object):
                     ConditionExpression = exp
                 else:
                     ConditionExpression = ConditionExpression & exp
-        # for exp, label, value in args:
-        #     if not ConditionExpression:
-        #         ConditionExpression = exp
-        #     else:
-        #         ConditionExpression = '%s , %s' % (ConditionExpression, exp)
-        #     ExpressionAttributeValues[label] = value
         instance.ConditionExpression = ConditionExpression
         instance.ExpressionAttributeValues = ExpressionAttributeValues
         return instance
@@ -117,11 +111,10 @@ class ModelBase(object):
             params['ExpressionAttributeValues'] = ExpressionAttributeValues
         return params
 
-    def update(self,
-               ReturnValues='ALL_NEW',
-               ReturnConsumedCapacity='NONE',
-               **kwargs):
+    def update(self, *args, **kwargs):
         update_fields = {}
+        ReturnValues = kwargs.pop('ReturnValues', 'ALL_NEW')
+        ReturnConsumedCapacity = kwargs.pop('ReturnConsumedCapacity', 'NONE')
         params = self._prepare_update_item_params(
             ReturnValues=ReturnValues,
             ReturnConsumedCapacity=ReturnConsumedCapacity)
@@ -132,7 +125,7 @@ class ModelBase(object):
             update_fields[k] = field.typecast_for_storage(v)
         # use storage value
         item = Table(self).update_item(
-            update_fields=update_fields, **params)
+            update_fields, *args, **params)
         value_for_read = self._get_values_for_read(item)
         for k, v in value_for_read.items():
             setattr(self, k, v)
