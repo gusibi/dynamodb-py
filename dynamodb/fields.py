@@ -4,6 +4,7 @@ dynamodb model fields
 '''
 from __future__ import unicode_literals
 
+import pickle
 import decimal
 from datetime import datetime, date, timedelta
 
@@ -25,13 +26,21 @@ __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
 class DecimalEncoder(json.JSONEncoder):
     # Helper class to convert a DynamoDB item to JSON.
 
-    def default(self, o):
-        if isinstance(o, decimal.Decimal):
-            if o % 1 > 0:
-                return float(o)
+    def default(self, obj):
+        if isinstance(obj, decimal.Decimal):
+            if obj % 1 > 0:
+                return float(obj)
             else:
-                return int(o)
-        return super(DecimalEncoder, self).default(o)
+                return int(obj)
+        if isinstance(obj, set):
+            return {'_python_object': pickle.dumps(obj)}
+        return super(DecimalEncoder, self).default(obj)
+
+
+def as_python_object(dct):
+    if '_python_object' in dct:
+        return pickle.loads(str(dct['_python_object']))
+    return dct
 
 
 class Attribute(Expression):
@@ -52,6 +61,7 @@ class Attribute(Expression):
         default      -- Initial value of the attribute.
     """
     use_decimal_types = False
+    field_type = 'char'
 
     def __init__(self,
                  name=None,
@@ -174,6 +184,8 @@ class CharField(Attribute):
 
 class IntegerField(Attribute):
 
+    field_type = 'integer'
+
     def __init__(self, minimum=None, maximum=None, **kwargs):
         super(IntegerField, self).__init__(**kwargs)
         self.maximum = maximum
@@ -217,6 +229,7 @@ class IntegerField(Attribute):
 class FloatField(Attribute):
 
     use_decimal_types = True
+    field_type = 'float'
 
     def typecast_for_read(self, value):
         return float(value)
@@ -250,6 +263,8 @@ class FloatField(Attribute):
 
 class BooleanField(Attribute):
 
+    field_type = 'bool'
+
     def typecast_for_read(self, value):
         return value
 
@@ -266,6 +281,8 @@ class BooleanField(Attribute):
 
 
 class DateTimeField(Attribute):
+
+    field_type = 'datetime'
 
     def __init__(self, auto_now=False, auto_now_add=False, **kwargs):
         super(DateTimeField, self).__init__(**kwargs)
@@ -300,6 +317,8 @@ class DateTimeField(Attribute):
 
 class DateField(Attribute):
 
+    field_type = 'date'
+
     def __init__(self, auto_now=False, auto_now_add=False, **kwargs):
         super(DateField, self).__init__(**kwargs)
         self.auto_now = auto_now
@@ -332,6 +351,8 @@ class DateField(Attribute):
 
 
 class TimeDeltaField(Attribute):
+
+    field_type = 'timedeltal'
 
     def __init__(self, **kwargs):
         super(TimeDeltaField, self).__init__(**kwargs)
@@ -374,20 +395,25 @@ class TimeDeltaField(Attribute):
 
 class DictField(Attribute):
 
+    field_type = 'dict'
+
     def __init__(self, **kwargs):
         super(DictField, self).__init__(**kwargs)
 
     def typecast_for_read(self, value):
         if value == '':
             return {}
-        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder))
+        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder),
+                           object_hook=as_python_object)
         return value
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return {}
-        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
+        value = json.loads(json.dumps(value, cls=DecimalEncoder),
+                           parse_float=decimal.Decimal,
+                           object_hook=as_python_object)
         return value
 
     def validate(self, instance):
@@ -408,6 +434,8 @@ class DictField(Attribute):
 
 class ListField(Attribute):
 
+    field_type = 'list'
+
     def __init__(self, **kwargs):
         super(ListField, self).__init__(**kwargs)
 
@@ -421,7 +449,8 @@ class ListField(Attribute):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return []
-        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
+        value = json.loads(json.dumps(value, cls=DecimalEncoder),
+                           parse_float=decimal.Decimal)
         return value
 
     def validate(self, instance):
@@ -442,20 +471,25 @@ class ListField(Attribute):
 
 class SetField(Attribute):
 
+    field_type = 'set'
+
     def __init__(self, **kwargs):
         super(SetField, self).__init__(**kwargs)
 
     def typecast_for_read(self, value):
         if not value:
             return []
-        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder))
+        value = json.loads(json.dumps(value, indent=4, cls=DecimalEncoder),
+                           object_hook=as_python_object)
         return value
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return []
-        value = json.loads(json.dumps(value), parse_float=decimal.Decimal)
+        value = json.loads(json.dumps(value, cls=DecimalEncoder),
+                           parse_float=decimal.Decimal,
+                           object_hook=as_python_object)
         return value
 
     def validate(self, instance):

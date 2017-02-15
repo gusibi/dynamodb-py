@@ -8,6 +8,7 @@ from botocore.vendored.requests.exceptions import ConnectionError
 
 from .connection import db_local as db
 from .helpers import get_attribute_type
+from .errors import UpdateItemException
 
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
@@ -429,7 +430,6 @@ class Table(object):
         return response
 
     def _prepare_update_item_params(self, update_fields=None, *args, **kwargs):
-        print(update_fields, args, kwargs)
         params = {
             'Key': self._get_primary_key()
         }
@@ -443,19 +443,24 @@ class Table(object):
                 if set_expression_str:
                     set_expression_str += ', {k} = {v}'.format(k=k, v=label)
                 else:
-                    set_expression_str += 'SET {k} = {v}'.format(k=k, v=label)
+                    set_expression_str += '{k} = {v}'.format(k=k, v=label)
                 ExpressionAttributeValues[label] = v
             action_exp_dict['SET'] = set_expression_str
         for arg in args:
             exp, eav, action = arg
             action_exp = action_exp_dict.get(action)
             if action_exp:
-                action_exp += exp
+                action_exp = '{action_exp}, {exp}'.format(action_exp=action_exp,
+                                                          exp=exp)
             else:
                 action_exp = exp
             action_exp_dict[action] = action_exp
             ExpressionAttributeValues.update(eav)
-        params['ExpressionAttributeValues'] = ExpressionAttributeValues
+        for action, _exp in action_exp_dict.iteritems():
+            action_exp_dict[action] = '{action} {exp}'.format(action=action,
+                                                              exp=_exp)
+        if ExpressionAttributeValues:
+            params['ExpressionAttributeValues'] = ExpressionAttributeValues
         params['UpdateExpression'] = " ".join(action_exp_dict.values())
         params.update(kwargs)
         return params
@@ -483,16 +488,16 @@ class Table(object):
         ## example
         item.update_item(a=12, b=12, c=12)
         '''
-        print(update_fields, args, kwargs)
         params = self._prepare_update_item_params(update_fields, *args, **kwargs)
         try:
+            print(params)
             item = self.table.update_item(**params)
             attributes = item.get('Attributes')
             return attributes
         except ClientError as e:
             if e.response['Error']['Code'] == "ConditionalCheckFailedException":
                 print(e.response['Error']['Message'])
-            raise Exception(e.response['Error']['Message'])
+            raise UpdateItemException(e.response['Error']['Message'])
 
     def delete_item(self, **kwargs):
         '''

@@ -12,6 +12,10 @@ class ValidationException(Exception):
     pass
 
 
+class UpdateItemException(Exception):
+    pass
+
+
 class FieldValidationError(Exception):
 
     def __init__(self, errors, *args, **kwargs):

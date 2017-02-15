@@ -58,18 +58,6 @@ def create_and_get_item():
     Test.create(realname='gs5', score=100, order_score=99.99, date_created=now, doc={'a': 1.1})
 
 
-def create_and_update_item():
-    Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
-    item = Test.get(realname='gs1', score=100)
-    print item.realname, item.score, item.order_score
-    item.update(order_score=90.9)
-    print item.realname, item.score, item.order_score
-    # item = Test(realname='gs1', score=100).update(order_score=20.0)
-    # print item.realname, item.score, item.order_score, item.date_created
-    # item = Test(realname='gs1', score=100).condition(Test.order_score.eq(10.0)).update(date_created=now)
-    # print item.realname, item.score, item.order_score, item.date_created
-
-
 def update_item_by_set():
     Test.create(realname='gs01', score=100, order_score=99.99, date_created=now)
     item = Test.get(realname='gs01', score=100)
@@ -90,6 +78,58 @@ def update_item_by_set():
     item.update(Test.ids.set([100], list_append=('ids', -1)))
     print 'set with list_append'
     assert item.ids[-1] == 100
+    item.update(Test.order_score.set(78.7, attr_label=':os'),
+                doc={'a': 'bbb'})
+    print 'set with attr_label and upate_field'
+    assert item.doc['a'] == 'bbb'
+
+
+def update_item_by_set_func():
+    # list_append
+    Test.create(realname='gs02', score=101, order_score=9.99, date_created=now)
+    item = Test.get(realname='gs02', score=101)
+    assert item.order_score == 9.99
+    item.update(Test.ids.list_append([1]))
+    assert item.ids == [1]
+    item.update(Test.ids.list_append([2, 4]))
+    assert item.ids == [1, 2, 4]
+    item.update(Test.ids.set([8], list_append=('ids', -1)))
+    assert item.ids == [1, 2, 4, 8]
+
+    # remove
+    item.update(Test.ids.remove(indexes=[2, 4]))
+    assert item.ids == [1, 2, 8]
+    item.update(Test.ids.remove(indexes=[4, 8, 9]))
+    assert item.ids == [1, 2, 8]
+
+    # add
+    item.update(Test.order_score.add(4))
+    assert item.order_score == 13.99
+    item.update(Test.doc.add(4, path='doc.b'))
+    assert item.doc['b'] == 4
+    item.update(Test.doc.add(4, path='doc.b'))
+    assert item.doc['b'] == 8
+    item.update(doc={'a': {'11', '22'}})
+    item.update(Test.doc.add({'set1'}, path='doc.a'))
+    assert 'set1' in item.doc['a']
+
+
+def create_and_update_item():
+    Test.create(realname='gs1', score=100, order_score=99.99, date_created=now)
+    item = Test.get(realname='gs1', score=100)
+    print item.realname, item.score, item.order_score
+    item.update(order_score=90.9)
+    assert item.order_score == 90.9
+    item.update(Test.order_score.add(1),
+                Test.ids.list_append([1, 2]),
+                doc={'a': 'aaaa'})
+    assert item.order_score == 91.9
+    assert item.ids == [1, 2]
+    assert item.doc['a'] == 'aaaa'
+    item = Test(realname='gs1', score=100).update(order_score=20.0)
+    assert item.order_score == 20
+    item = Test(realname='gs1', score=100).condition(Test.order_score.eq(10.0)).update(date_created=now)
+    print item.realname, item.score, item.order_score, item.date_created
 
 
 def delete_item():
@@ -206,8 +246,9 @@ def main():
     # show_table()
     # update_table()
     # show_table()
-    # create_and_update_item()
-    update_item_by_set()
+    # update_item_by_set()
+    # update_item_by_set_func()
+    create_and_update_item()
     # batch_add_and_get_item()
     # delete_item()
     # init_data()
