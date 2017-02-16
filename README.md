@@ -89,7 +89,7 @@ Can store a list of unicode, int, float, as well as other dynamodb-py models.
 
 Can store a dict. 
 
-```
+```python
 class Movies(Model):
 
     __table_name__ = 'Movies'
@@ -113,6 +113,23 @@ You can optionally set a default value on a field using either a plain value or 
 [Example](https://github.com/gusibi/dynamodb-py/tree/master/examples)
 
 ## Querying
+
+```python
+# query without index
+items = Movies.query().where(Movies.year.eq(year)).all()
+items = Movies.query().where(Movies.year.eq(1985)).limit(10).all()
+items = (Movies.query()
+		.where(Movies.year.eq(1992),
+			   Movies.title.between('A', 'L'))
+		.all())
+
+# query with index
+items = (Movies.query()
+		.where(Movies.year.eq(1992),
+			   Movies.title.between('A', 'L'))
+		.order_by(Movies.rating, asc=False)
+		.all())
+```
 
 ## Credits
 

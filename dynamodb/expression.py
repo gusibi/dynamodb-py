@@ -24,7 +24,7 @@ class Expression(object):
             - value: value
             - set_path: attr path if not use attr name
             - attr_label: string attr label ex: label=':p'
-            - if_not_exists: (tuple) path, operand ex: (Price, 100)
+            - if_not_exists: string path ex: Price
             - list_append: (tuple) path, index
             ex: (#pr.FiveStar, -1) to last
                 (#pr.FiveStar, 0) to first
@@ -42,46 +42,61 @@ class Expression(object):
 
         return exp, {label: value}
         '''
-        label = attr_label or ":{name}".format(name=self.name)
+        path = attr_label or self.name
+        label = ":{name}".format(name=path)
+        attr_name = "#{name}".format(name=path)
         # ExpressionAttributeValues
         if isinstance(value, float) or self.use_decimal_types:
             value = Decimal(str(value))
         eav = {label: value}
+        ean = {}
         if if_not_exists:
-            path, operand = if_not_exists
+            no_path, operand = if_not_exists, value
             if isinstance(operand, float):
                 operand = Decimal(str(operand))
             eav[label] = operand
+            ean[attr_name] = path
             exp = '{name} = if_not_exists({path}, {label})'.format(
-                name=self.name, path=path, label=label)
+                name=attr_name, path=no_path, label=label)
         elif list_append:
-            path, index = list_append
+            list_path, index = list_append
             if index == 0:
                 exp = "{path} = list_append({label}, {path})".format(
-                    path=path, label=label)
+                    path=list_path, label=label)
             elif index == -1:
                 exp = "{path} = list_append({path}, {label})".format(
-                    path=path, label=label)
+                    path=list_path, label=label)
             else:
                 raise ValidationException('index error')
         else:
             path = set_path or self.name
-            exp = '{path} = {label}'.format(path=path, label=label)
-        return exp, eav, 'SET'
+            attr_name = "#{name}".format(name=attr_label or path)
+            ean[attr_name] = path
+            exp = '{path} = {label}'.format(path=attr_name, label=label)
+        exp_attr = {
+            'name': ean,
+            'value': eav
+        }
+        return exp, exp_attr, 'SET'
 
     def list_append(self, value, path=None, index=-1,
                     attr_label=None):
-        path = path or self.name
-        label = attr_label or ":{name}".format(name=self.name)
+        path = attr_label or path or self.name
+        label = ":{name}".format(name=path)
+        attr_name = "#{name}".format(name=path)
         if index == 0:
             exp = "{path} = list_append({label}, {path})".format(
-                path=path, label=label)
+                path=attr_name, label=label)
         elif index == -1:
             exp = "{path} = list_append({path}, {label})".format(
-                path=path, label=label)
+                path=attr_name, label=label)
         else:
             raise ValidationException('index error')
-        return exp, {label: value}, 'SET'
+        exp_attr = {
+            'value': {label: value},
+            'name': {attr_name: path}
+        }
+        return exp, exp_attr, 'SET'
 
     def remove(self, path=None, indexes=None):
         '''
@@ -91,9 +106,11 @@ class Expression(object):
         '''
         exp = ''
         path = path or self.name
+        attr_name = "#{name}".format(name=path)
+        ean = {attr_name: path}
         if self.field_type == 'list':
             for index in indexes:
-                sub_exp = '{name}[{index}]'.format(name=self.name,
+                sub_exp = '{name}[{index}]'.format(name=attr_name,
                                                    index=index)
                 if not exp:
                     exp = '{sub_exp}'.format(sub_exp=sub_exp)
@@ -102,7 +119,7 @@ class Expression(object):
                                                     sub_exp=sub_exp)
         else:
             exp = '{path}'.format(path=path)
-        return exp, {}, 'REMOVE'
+        return exp, {'name': ean}, 'REMOVE'
 
     def add(self, value, path=None, attr_label=None):
         '''
@@ -112,10 +129,16 @@ class Expression(object):
         '''
         if self.field_type not in ('integer', 'float', 'set', 'dict'):
             raise Exception('Incorrect data type, only [integer, float, set, dict]')
-        name = path or self.name
-        label = attr_label or ":{name}".format(name=self.name)
-        exp = '{name} {label}'.format(name=name, label=label)
-        return exp, {label: value}, 'ADD'
+        exp_attr = {}
+        if not path:
+            attr_name = "#{name}".format(name=attr_label or self.name)
+            exp_attr['name'] = {attr_name: self.name}
+        else:
+            attr_name = attr_label or path
+        label = ":{name}".format(name=self.name)
+        exp = '{name} {label}'.format(name=attr_name, label=label)
+        exp_attr['value'] = {label: value}
+        return exp, exp_attr, 'ADD'
 
     def _expression_func(self, op, *args, **kwargs):
         # for use by index ... bad

@@ -435,19 +435,25 @@ class Table(object):
         }
         ExpressionAttributeValues = getattr(self.instance,
                                             'ExpressionAttributeValues', {})
+        ExpressionAttributeNames = getattr(self.instance,
+                                           'ExpressionAttributeNames', {})
         action_exp_dict = {}
         if update_fields:
             set_expression_str = ''
             for k, v in update_fields.items():
                 label = ':{k}'.format(k=k)
+                path = '#{k}'.format(k=k)
                 if set_expression_str:
-                    set_expression_str += ', {k} = {v}'.format(k=k, v=label)
+                    set_expression_str += ', {k} = {v}'.format(k=path, v=label)
                 else:
-                    set_expression_str += '{k} = {v}'.format(k=k, v=label)
+                    set_expression_str += '{k} = {v}'.format(k=path, v=label)
                 ExpressionAttributeValues[label] = v
+                ExpressionAttributeNames[path] = k
             action_exp_dict['SET'] = set_expression_str
         for arg in args:
-            exp, eav, action = arg
+            exp, exp_attr, action = arg
+            eav = exp_attr.get('value', {})
+            ean = exp_attr.get('name', {})
             action_exp = action_exp_dict.get(action)
             if action_exp:
                 action_exp = '{action_exp}, {exp}'.format(action_exp=action_exp,
@@ -456,11 +462,14 @@ class Table(object):
                 action_exp = exp
             action_exp_dict[action] = action_exp
             ExpressionAttributeValues.update(eav)
+            ExpressionAttributeNames.update(ean)
         for action, _exp in action_exp_dict.iteritems():
             action_exp_dict[action] = '{action} {exp}'.format(action=action,
                                                               exp=_exp)
         if ExpressionAttributeValues:
             params['ExpressionAttributeValues'] = ExpressionAttributeValues
+        if ExpressionAttributeNames:
+            params['ExpressionAttributeNames'] = ExpressionAttributeNames
         params['UpdateExpression'] = " ".join(action_exp_dict.values())
         params.update(kwargs)
         return params

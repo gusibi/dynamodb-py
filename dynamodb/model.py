@@ -118,6 +118,7 @@ class ModelBase(object):
         params = self._prepare_update_item_params(
             ReturnValues=ReturnValues,
             ReturnConsumedCapacity=ReturnConsumedCapacity)
+        print kwargs
         if not self.validate_attrs(**kwargs):
             raise FieldValidationError(self._errors)
         for k, v in kwargs.items():

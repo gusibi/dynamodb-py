@@ -130,7 +130,6 @@ def query_without_index():
         print(i.year, ":", i.title)
 
 
-
 def query_with_index():
     items = (Movies.query()
              .where(Movies.year.eq(1992),

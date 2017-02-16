@@ -64,13 +64,13 @@ def update_item_by_set():
     item.update(Test.order_score.set(80))
     print 'set'
     assert item.order_score == 80
-    item.update(Test.order_score.set(78.7, attr_label=':os'))
+    item.update(Test.order_score.set(78.7, attr_label='os'))
     print 'set with attr_label'
     assert item.order_score == 78.7
-    item.update(Test.order_score.set(70, if_not_exists=('order_score', 78.7)))
+    item.update(Test.order_score.set(78.7, if_not_exists='order_score'))
     print 'set with if_not_exists'
     assert item.order_score == 78.7
-    item.update(Test.order_score.set(8, if_not_exists=('ids[0]', 10)))
+    item.update(Test.order_score.set(10, if_not_exists='ids[0]'))
     assert item.order_score == 10
     print 'ids', item.ids, type(item.ids)
     item.update(ids=[12])
@@ -78,7 +78,7 @@ def update_item_by_set():
     item.update(Test.ids.set([100], list_append=('ids', -1)))
     print 'set with list_append'
     assert item.ids[-1] == 100
-    item.update(Test.order_score.set(78.7, attr_label=':os'),
+    item.update(Test.order_score.set(78.7, attr_label='os'),
                 doc={'a': 'bbb'})
     print 'set with attr_label and upate_field'
     assert item.doc['a'] == 'bbb'
@@ -246,8 +246,8 @@ def main():
     # show_table()
     # update_table()
     # show_table()
-    # update_item_by_set()
-    # update_item_by_set_func()
+    update_item_by_set()
+    update_item_by_set_func()
     create_and_update_item()
     # batch_add_and_get_item()
     # delete_item()
