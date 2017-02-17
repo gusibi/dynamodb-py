@@ -128,7 +128,7 @@ class Expression(object):
         ADD Color :c
         '''
         if self.field_type not in ('integer', 'float', 'set', 'dict'):
-            raise Exception('Incorrect data type, only [integer, float, set, dict]')
+            raise ValidationException('Incorrect data type, only [integer, float, set, dict]')
         exp_attr = {}
         if not path:
             attr_name = "#{name}".format(name=attr_label or self.name)

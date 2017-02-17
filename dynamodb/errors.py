@@ -4,50 +4,28 @@ All the errors specific to Dynamodb.  The goal is to mimic ActiveRecord.
 '''
 from __future__ import unicode_literals
 
-__all__ = ['FieldValidationError', 'ParameterError', 'NotFoundError',
-           'ValidationException']
+__all__ = ['ClientException', 'ConnectionException', 'ParameterException',
+           'FieldValidationException', 'ValidationException']
 
 
 class ValidationException(Exception):
     pass
 
 
-class UpdateItemException(Exception):
+class ClientException(Exception):
     pass
 
 
-class FieldValidationError(Exception):
-
-    def __init__(self, errors, *args, **kwargs):
-        super(FieldValidationError, self).__init__(*args, **kwargs)
-        self._errors = errors
-
-    @property
-    def errors(self):
-        return self._errors
-
-    def __str__(self):
-        if self._errors:
-            if isinstance(self._errors, list):
-                error = self._errors[-1]
-            else:
-                error = self._errors
-            return str(error)
-        return self._errors
+class ConnectionException(Exception):
+    pass
 
 
-class ParameterError(Exception):
+class ParameterException(Exception):
+    pass
 
-    def __init__(self, errors, *args, **kwargs):
-        super(ParameterError, self).__init__(*args, **kwargs)
-        self._errors = errors
 
-    @property
-    def errors(self):
-        return self._errors
-
-    def __str__(self):
-        return self._errors
+class FieldValidationException(Exception):
+    pass
 
 
 class NotFoundError(Exception):

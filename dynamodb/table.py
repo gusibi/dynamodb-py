@@ -8,7 +8,7 @@ from botocore.vendored.requests.exceptions import ConnectionError
 
 from .connection import db_local as db
 from .helpers import get_attribute_type
-from .errors import UpdateItemException
+from .errors import ClientException, ConnectionException, ParameterException
 
 pp = pprint.PrettyPrinter(indent=4)
 pprint = pp.pprint
@@ -27,7 +27,7 @@ class Table(object):
         try:
             response = db.meta.client.describe_table(TableName=self.table_name)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         else:
             table_info = response['Table']
         return table_info
@@ -211,9 +211,9 @@ class Table(object):
             params = self._prepare_create_table_params()
             return db.create_table(**params)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         except ConnectionError:
-            raise Exception('Connection refused')
+            raise ConnectionException('Connection refused')
 
     def _update_throughput(self, ProvisionedThroughput):
         ReadCapacityUnits = ProvisionedThroughput['ReadCapacityUnits']
@@ -312,9 +312,9 @@ class Table(object):
         try:
             return self.table.delete()
         except ClientError:
-            raise Exception('Cannot do operations on a non-existent table')
+            raise ClientException('Cannot do operations on a non-existent table')
         except ConnectionError:
-            raise Exception('Connection refused')
+            raise ConnectionException('Connection refused')
 
     def _get_primary_key(self, **kwargs):
         hash_key, range_key = self.instance._hash_key, self.instance._range_key
@@ -323,7 +323,7 @@ class Table(object):
         }
         _range_key = kwargs.get(range_key) or getattr(self.instance, range_key, None)
         if range_key and not _range_key:
-            raise Exception('Invalid range key value type')
+            raise ParameterException('Invalid range key value type')
         elif range_key:
             key[range_key] = _range_key
         return key
@@ -336,7 +336,7 @@ class Table(object):
         try:
             response = self.table.get_item(**kwargs)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         else:
             item = response.get('Item')
         return item
@@ -360,7 +360,7 @@ class Table(object):
         try:
             response = db.batch_get_item(**params)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         else:
             items = response['Responses'][self.table_name]
         return items
@@ -379,7 +379,7 @@ class Table(object):
                 for item in items:
                     batch.put_item(Item=item)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
 
     def query(self, **kwargs):
         """
@@ -419,14 +419,14 @@ class Table(object):
         try:
             response = self.table.query(**kwargs)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         return response
 
     def scan(self, **kwargs):
         try:
             response = self.table.scan(**kwargs)
         except ClientError as e:
-            raise Exception(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
         return response
 
     def _prepare_update_item_params(self, update_fields=None, *args, **kwargs):
@@ -506,7 +506,7 @@ class Table(object):
         except ClientError as e:
             if e.response['Error']['Code'] == "ConditionalCheckFailedException":
                 print(e.response['Error']['Message'])
-            raise UpdateItemException(e.response['Error']['Message'])
+            raise ClientException(e.response['Error']['Message'])
 
     def delete_item(self, **kwargs):
         '''
@@ -552,7 +552,7 @@ class Table(object):
             self.table.delete_item(Key=key)
         except ClientError as e:
             if e.response['Error']['Code'] == "ConditionalCheckFailedException":
-                raise Exception(e.response['Error']['Message'])
+                raise ClientException(e.response['Error']['Message'])
         return True
 
     def item_count(self):

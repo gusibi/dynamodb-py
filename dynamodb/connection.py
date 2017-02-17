@@ -3,6 +3,8 @@
 from os import environ
 import boto3
 
+from .errors import ParameterException
+
 
 class ConnectionManager:
 
@@ -11,7 +13,7 @@ class ConnectionManager:
         self.db = None
         if mode == "local":
             if config is not None:
-                raise Exception('Cannot specify config when in local mode')
+                raise ParameterException('Cannot specify config when in local mode')
             endpoint = endpoint or 'localhost'
             port = port or '8000'
             self.db = self.getDynamoDBConnection(
@@ -22,7 +24,7 @@ class ConnectionManager:
                 endpoint=endpoint,
                 use_instance_metadata=use_instance_metadata)
         else:
-            raise Exception("Invalid arguments, please refer to usage.")
+            raise ParameterException("Invalid arguments, please refer to usage.")
 
     def getDynamoDBConnection(self, config=None, endpoint=None, port=None,
                               local=False, use_instance_metadata=False):
@@ -38,7 +40,7 @@ class ConnectionManager:
             db = boto3.resource('dynamodb', **params)
         else:
             if not config or not isinstance(config, dict):
-                raise Exception("Invalid config")
+                raise ParameterException("Invalid config")
             params.update(config)
             db = boto3.resource('dynamodb', **params)
         return db

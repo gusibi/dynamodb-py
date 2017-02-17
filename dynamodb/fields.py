@@ -9,7 +9,7 @@ import decimal
 from datetime import datetime, date, timedelta
 
 from .json_import import json
-from .errors import FieldValidationError
+from .errors import FieldValidationException
 from .helpers import str_time, str_to_time
 from .expression import Expression
 
@@ -133,7 +133,7 @@ class Attribute(Expression):
             if r:
                 errors.extend(r)
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class CharField(Attribute):
@@ -161,7 +161,7 @@ class CharField(Attribute):
         errors = []
         try:
             super(CharField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -179,7 +179,7 @@ class CharField(Attribute):
                 pass
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class IntegerField(Attribute):
@@ -209,7 +209,7 @@ class IntegerField(Attribute):
         errors = []
         try:
             super(IntegerField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -223,7 +223,7 @@ class IntegerField(Attribute):
             errors.append((self.name, 'exceeds maximum'))
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class FloatField(Attribute):
@@ -249,7 +249,7 @@ class FloatField(Attribute):
         errors = []
         try:
             super(FloatField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -258,7 +258,7 @@ class FloatField(Attribute):
             errors.append((self.name, 'type error, need float'))
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class BooleanField(Attribute):
@@ -420,7 +420,7 @@ class DictField(Attribute):
         errors = []
         try:
             super(DictField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -429,7 +429,7 @@ class DictField(Attribute):
             errors.append((self.name, 'must a dict'))
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class ListField(Attribute):
@@ -457,7 +457,7 @@ class ListField(Attribute):
         errors = []
         try:
             super(ListField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -466,7 +466,7 @@ class ListField(Attribute):
             errors.append((self.name, 'must a list'))
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 class SetField(Attribute):
@@ -496,7 +496,7 @@ class SetField(Attribute):
         errors = []
         try:
             super(SetField, self).validate(instance)
-        except FieldValidationError as err:
+        except FieldValidationException as err:
             errors.extend(err.errors)
 
         val = getattr(instance, self.name)
@@ -505,7 +505,7 @@ class SetField(Attribute):
             errors.append((self.name, 'must a set'))
 
         if errors:
-            raise FieldValidationError(errors)
+            raise FieldValidationException(errors)
 
 
 Fields = (Attribute, CharField, IntegerField, FloatField,

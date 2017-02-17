@@ -4,7 +4,7 @@ import copy
 from .table import Table
 from .query import Query
 from .fields import Attribute
-from .errors import FieldValidationError
+from .errors import FieldValidationException, ValidationException
 from .helpers import get_items_for_storage
 
 
@@ -56,7 +56,7 @@ def _initialize_indexes(model_class, name, bases, attrs):
             elif v.hash_key:
                 model_class._hash_key = k
     if name not in ('ModelBase', 'Model') and not model_class._hash_key:
-        raise Exception('hash_key is required')
+        raise ValidationException('hash_key is required')
 
 
 class ModelMetaclass(type):
@@ -118,9 +118,8 @@ class ModelBase(object):
         params = self._prepare_update_item_params(
             ReturnValues=ReturnValues,
             ReturnConsumedCapacity=ReturnConsumedCapacity)
-        print kwargs
         if not self.validate_attrs(**kwargs):
-            raise FieldValidationError(self._errors)
+            raise FieldValidationException(self._errors)
         for k, v in kwargs.items():
             field = self.attributes[k]
             update_fields[k] = field.typecast_for_storage(v)
@@ -184,7 +183,7 @@ class ModelBase(object):
 
     def save(self, overwrite=False):
         if not self.is_valid():
-            raise Exception(self.errors)
+            raise ValidationException(self.errors)
         self.write()
         return True
 
@@ -222,7 +221,7 @@ class Model(ModelBase):
         for field in self.fields:
             try:
                 field.validate(self)
-            except FieldValidationError as e:
+            except FieldValidationException as e:
                 self.errors.extend(e.errors)
         self.validate()
         return not bool(self.errors)
@@ -232,12 +231,12 @@ class Model(ModelBase):
         for attr, value in kwargs.iteritems():
             field = self.attributes.get(attr)
             if not field:
-                raise Exception('Field not found: %s' % attr)
+                raise ValidationException('Field not found: %s' % attr)
             instance = copy.deepcopy(self)
             setattr(instance, attr, value)
             try:
                 field.validate(instance)
-            except FieldValidationError as e:
+            except FieldValidationException as e:
                 self._errors.extend(e.errors)
         return not bool(self._errors)
 
@@ -309,7 +308,7 @@ class Model(ModelBase):
     def _get_values_for_storage(self):
         data = {}
         if not self.is_valid():
-            raise FieldValidationError(self.errors)
+            raise FieldValidationException(self.errors)
         for attr, field in self.attributes.iteritems():
             value = getattr(self, attr)
             if value is not None:

@@ -4,7 +4,7 @@ import copy
 
 from .table import Table
 from .fields import Fields
-from .errors import FieldValidationError
+from .errors import FieldValidationException
 
 
 class Query(object):
@@ -50,10 +50,10 @@ class Query(object):
             if isinstance(arg, Fields):
                 name = arg.name
                 if arg not in instance.fields:
-                    raise FieldValidationError('%s not found' % name)
+                    raise FieldValidationException('%s not found' % name)
                 projections.append(name)
             else:
-                raise FieldValidationError('Bad type must be Attribute type')
+                raise FieldValidationException('Bad type must be Attribute type')
         ProjectionExpression = ",".join(projections)
         return ProjectionExpression
 
@@ -64,7 +64,7 @@ class Query(object):
         }
         _range_key = getattr(self.instance, range_key, None)
         if range_key and not _range_key:
-            raise Exception('Invalid range key value type')
+            raise FieldValidationException('Invalid range key value type')
         elif range_key:
             key[range_key] = _range_key
         return key
@@ -155,14 +155,14 @@ class Query(object):
             name = index_field.name
             index_name = self.instance._local_indexes.get(name)
             if not index_name:
-                raise Exception('index not found')
+                raise FieldValidationException('index not found')
             self.filter_index_field = name
             self.query_params.update({
                 'IndexName': index_name,
                 'ScanIndexForward': asc
             })
         else:
-            raise Exception('%s not a field')
+            raise FieldValidationException('%s not a field' % index_field)
         return copy.deepcopy(self)
 
     def _yield_all(self, method):
