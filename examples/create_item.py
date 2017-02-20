@@ -43,6 +43,7 @@ def create_item_by_boto3():
                 'rank': rank,
                 'release_date': release_date
             }
+            print(item)
             table.put_item(Item=item)
         item_count = db3.meta.client.describe_table(
             TableName='Movies')['Table']['ItemCount']
@@ -64,6 +65,7 @@ def create_item():
                 release_date = release_date
             )
             print(movie['title'], int(movie['year']))
+            print(result)
             Movies.create(**result)
         item_count = Movies.item_count()
         print('Movies item count: %s' % item_count)
@@ -89,6 +91,7 @@ def batch_add_items():
                     rank=movie['info'].get('rank', 0),
                     release_date = release_date
                 )
+                print(result)
                 items.append(result)
             Movies.batch_write(items)
             item_count = Movies.item_count()
@@ -97,6 +100,6 @@ def batch_add_items():
 
 
 if __name__ == '__main__':
-    create_item_by_boto3()
-    create_item()
+    # create_item_by_boto3()
+    # create_item()
     batch_add_items()

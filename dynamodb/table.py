@@ -6,7 +6,7 @@ import pprint
 from botocore.exceptions import ClientError
 from botocore.vendored.requests.exceptions import ConnectionError
 
-from .connection import db_local as db
+from .connection import db
 from .helpers import get_attribute_type
 from .errors import ClientException, ConnectionException, ParameterException
 

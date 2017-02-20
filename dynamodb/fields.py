@@ -18,7 +18,6 @@ __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
            'DateTimeField', 'DateField', 'TimeDeltaField', 'BooleanField']
 
 # TODO
-# 完成项目 update delete_item
 # 完成index
 # 完成 query scan
 

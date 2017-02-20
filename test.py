@@ -1,5 +1,7 @@
 #! -*- coding: utf-8 -*-
 
+from os import environ
+
 from datetime import datetime
 
 import decimal
@@ -8,6 +10,7 @@ from dynamodb.model import Model
 from dynamodb.fields import (CharField, IntegerField, FloatField, Attribute,
                              DateTimeField, DictField, ListField)
 from dynamodb.table import Table
+
 
 
 class Test(Model):
@@ -188,13 +191,15 @@ def query_without_index():
     item = query.consistent.get(realname='gs100', score=33)
     print item
     query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
-    items = query.all()
+    response = query.all()
+    items = response['Items']
     for item in items:
         print item
 
     query = query.where(Test.realname.eq('gs100'),
                         Test.order_score.between(22, 26))
-    items = query.limit(3).all()
+    response = query.limit(3).all()
+    items = response['Items']
     print 'itmes filter by without index'
     for item in items:
         print item
@@ -212,7 +217,8 @@ def query_with_index():
              .where(Test.realname.eq('gs100'), Test.order_score.between(22, 26))
              .order_by(Test.order_score, asc=True))
     print 'itmes filter by without index'
-    items = query.limit(3).all()
+    response = query.limit(3).all()
+    items = response['Items']
     for item in items:
         print item
 
@@ -230,7 +236,8 @@ def scan():
     # item = query.consistent.get(realname='gs100', score=33)
     # print item
     # query = query.where(Test.realname.eq('gs100'), Test.order_score.lt(34), Test.score.gt(30))
-    # items = query.all()
+    # response = query.all()
+    # items = response['Items']
     # for item in items:
     #     print item
 
@@ -258,4 +265,6 @@ def main():
 
 
 if __name__ == '__main__':
+    environ['DEBUG'] = '1'
+    print environ.get('DEBUG')
     main()

@@ -4,7 +4,77 @@ import copy
 
 from .table import Table
 from .fields import Fields
+from .connection import db
 from .errors import FieldValidationException
+
+
+class Paginator(object):
+
+    def __init__(self, model_object):
+        self.model_object = model_object
+
+    def query(self, **kwargs):
+        '''
+        response_iterator = paginator.paginate(
+            TableName='string',
+            IndexName='string',
+            Select='ALL_ATTRIBUTES'|'ALL_PROJECTED_ATTRIBUTES'|'SPECIFIC_ATTRIBUTES'|'COUNT',
+            ConsistentRead=True|False,
+            ScanIndexForward=True|False,
+            ReturnConsumedCapacity='INDEXES'|'TOTAL'|'NONE',
+            ProjectionExpression='string',
+            FilterExpression='string',
+            KeyConditionExpression='string',
+            ExpressionAttributeNames={
+                'string': 'string'
+            },
+            ExpressionAttributeValues={
+                'string': {
+                    'S': 'string',
+                    'N': 'string',
+                    'B': b'bytes',
+                    'SS': [
+                        'string',
+                    ],
+                    'NS': [
+                        'string',
+                    ],
+                    'BS': [
+                        b'bytes',
+                    ],
+                    'M': {
+                        'string': {'... recursive ...'}
+                    },
+                    'L': [
+                        {'... recursive ...'},
+                    ],
+                    'NULL': True|False,
+                    'BOOL': True|False
+                }
+            },
+            PaginationConfig={
+                'MaxItems': 123,
+                'PageSize': 123,
+                'StartingToken': 'string'
+            }
+        )
+        '''
+        client = db.meta.client
+        paginator = client.get_paginator('query')
+        limit = kwargs.pop('Limit', None)
+        kwargs['TableName'] = self.model_object.__table_name__
+        if limit is not None:
+            pagination_config = {
+                'MaxItems': limit,
+                'PageSize': limit,
+                'StaringToken': '123232'
+            }
+            kwargs['PaginationConfig'] = pagination_config
+        # response = paginator.paginate(**kwargs).build_full_result()
+        response = paginator.paginate(**kwargs)
+        for item in response:
+            pass
+        return item
 
 
 class Query(object):
@@ -26,6 +96,7 @@ class Query(object):
         self.ConditionalOperator = None  # 'AND'|'OR'
         self.IndexName = None
         self.Select = 'ALL_ATTRIBUTES'  # 'ALL_ATTRIBUTES'|'ALL_PROJECTED_ATTRIBUTES'|'SPECIFIC_ATTRIBUTES'|'COUNT'
+        self.Offset = None
         self.Limit = None
         self.scaned_count = 0
         self.count = 0
@@ -41,6 +112,11 @@ class Query(object):
     @property
     def scan(self):
         self.Scan = True
+        return copy.deepcopy(self)
+
+    def start_key(self, **kwargs):
+        self.ExclusiveStartKey = kwargs
+        self.query_params['ExclusiveStartKey'] = self.ExclusiveStartKey
         return copy.deepcopy(self)
 
     def _projection_expression(self, *args):
@@ -209,4 +285,5 @@ class Query(object):
             value_for_read = _instance._get_values_for_read(item)
             instance = self.model_class(**value_for_read)
             results.append(instance)
-        return results
+        response['Items'] = results
+        return response

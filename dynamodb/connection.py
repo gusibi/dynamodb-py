@@ -53,5 +53,10 @@ config = {
 }
 
 
-db = ConnectionManager(mode='service', config=config).db
-db_local = ConnectionManager(mode='local').db
+print 'debug', environ.get('DEBUG')
+
+if environ.get('DEBUG'):
+    print '>>>>>>>>>>>>'
+    db = ConnectionManager(mode='local').db
+else:
+    db = ConnectionManager(mode='service', config=config).db
