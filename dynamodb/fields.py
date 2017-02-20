@@ -10,12 +10,13 @@ from datetime import datetime, date, timedelta
 
 from .json_import import json
 from .errors import FieldValidationException
-from .helpers import str_time, str_to_time
+from .helpers import str_time, str_to_time, date2timestamp
 from .expression import Expression
 
 
 __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
-           'DateTimeField', 'DateField', 'TimeDeltaField', 'BooleanField']
+           'DateTimeField', 'DateField', 'TimeDeltaField', 'TimeField',
+           'BooleanField', 'DictField', 'SetField', 'ListField']
 
 # TODO
 # 完成index
@@ -349,6 +350,41 @@ class DateField(Attribute):
         return self.value_type()
 
 
+class TimeField(Attribute):
+
+    field_type = 'time'
+
+    def __init__(self, auto_now=False, auto_now_add=False, **kwargs):
+        super(TimeField, self).__init__(**kwargs)
+        self.auto_now = auto_now
+        self.auto_now_add = auto_now_add
+
+    def typecast_for_read(self, value):
+        try:
+            # We load as if the timestampe was naive
+            # And gently override (ie: not convert) to the TZ to UTC
+            time = int(date2timestamp(value))
+            return time
+        except TypeError:
+            return None
+        except ValueError:
+            return None
+
+    def typecast_for_storage(self, value):
+        if not isinstance(value, date):
+            raise TypeError("%s should be date object, and not a %s" %
+                            (self.name, type(value)))
+        if value is None:
+            return None
+        return str_time(value)
+
+    def value_type(self):
+        return datetime
+
+    def acceptable_types(self):
+        return self.value_type()
+
+
 class TimeDeltaField(Attribute):
 
     field_type = 'timedeltal'
@@ -508,5 +544,5 @@ class SetField(Attribute):
 
 
 Fields = (Attribute, CharField, IntegerField, FloatField,
-          DateTimeField, DateField, TimeDeltaField, BooleanField,
-          ListField, DictField, SetField)
+          DateTimeField, DateField, TimeDeltaField, TimeField,
+          BooleanField, ListField, DictField, SetField)

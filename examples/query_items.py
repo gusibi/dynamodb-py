@@ -177,8 +177,7 @@ def query_with_index():
 
 def query_with_paginator():
     response = (Movies.query()
-                .where(Movies.year.eq(1992),
-                       Movies.title.between('A', 'L'))
+                .where(Movies.year.eq(1992))
                 .limit(20)
                 .all())
     items = response['Items']
@@ -188,18 +187,19 @@ def query_with_paginator():
     for i in items:
         print(i.year, ":", i.title)
 
-    response = (Movies.query()
-                .start_key(**LastEvaluatedKey)
-                .where(Movies.year.eq(1992),
-                       Movies.title.between('A', 'L'))
-                .limit(20)
-                .all())
-    items = response['Items']
-    print(response)
-    LastEvaluatedKey = response['LastEvaluatedKey']
-    print(LastEvaluatedKey)
-    for i in items:
-        print(i.year, ":", i.title)
+    # response = (Movies.query()
+    #             .start_key(**LastEvaluatedKey)
+    #             .where(Movies.year.eq(1992),
+    #                    Movies.title.between('A', 'L'))
+    #             .limit(20)
+    #             .all())
+    # items = response['Items']
+    # print(response)
+    # LastEvaluatedKey = response['LastEvaluatedKey')
+    # print(LastEvaluatedKey)
+    # for i in items:
+    #     print(i.year, ":", i.title)
+
 
 if __name__ == '__main__':
     # query_by_boto3()

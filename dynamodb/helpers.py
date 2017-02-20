@@ -37,11 +37,20 @@ def str_to_time(s):
         raise ValueError('%s parsed error' % s)
 
 
+def date2timestamp(dt):
+    # datetime to timestamp
+    import time
+    if not isinstance(dt, datetime):
+        return datetime
+    timestamp = time.mktime(dt.timetuple()) + dt.microsecond/1e6
+    return timestamp
+
+
 def get_attribute_type(attribute):
-    from .fields import CharField, IntegerField, DateTimeField, FloatField
+    from .fields import CharField, IntegerField, DateTimeField, FloatField, TimeField
     if isinstance(attribute, (CharField, DateTimeField)):
         return 'S'
-    elif isinstance(attribute, (IntegerField, FloatField)):
+    elif isinstance(attribute, (IntegerField, FloatField, TimeField)):
         return 'N'
     else:
         raise TypeError('bad type')
