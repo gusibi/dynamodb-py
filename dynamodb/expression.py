@@ -165,28 +165,32 @@ class Expression(object):
         exp = '{name} {op} {value}'.format(name=self.name, op=op, value=label)
         return exp, label, value
 
-    def eq(self, value):
+    def eq(self, value):  # ==
         # Creates a condition where the attribute is equal to the value.
         return self._expression_func('eq', value)
+
+    def ne(self, value):  # !=
+        # Creates a condition where the attribute is not equal to the value
+        return self._expression_func('ne', value)
 
     def _eq(self, value):
         # Creates a condition where the attribute is equal to the value.
         return self._expression('=', value)
 
-    def lt(self, value):
+    def lt(self, value):  # <
         # Creates a condition where the attribute is less than the value.
         return self._expression_func('lt', value)
 
-    def lte(self, value):
+    def lte(self, value):  # <=
         # Creates a condition where the attribute is less than or
         # equal to the value.
         return self._expression_func('lte', value)
 
-    def gt(self, value):
+    def gt(self, value):  # >
         # Creates a condition where the attribute is greater than the value.
         return self._expression_func('gt', value)
 
-    def gte(self, value):
+    def gte(self, value):  # >=
         # Creates a condition where the attribute is greater than or equal to
         # the value.
         return self._expression_func('gte', value)
@@ -199,13 +203,6 @@ class Expression(object):
     def begins_with(self, value):
         # Creates a condition where the attribute begins with the value
         return self._expression_func('begins_with', value)
-
-    def ne(self, value):
-        # Creates a condition where the attribute is not equal to the value
-        if self.hash_key or self.range_key:
-            # ValidationException
-            raise ValidationException('Query key condition not supported')
-        return self.name, Attr(self.name).ne(value), False
 
     def is_in(self, value):
         # Creates a condition where the attribute is in the value
