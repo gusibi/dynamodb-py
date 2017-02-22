@@ -2,6 +2,7 @@
 '''
 dynamodb model fields
 '''
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import pickle
@@ -367,7 +368,7 @@ class TimeField(Attribute):
             # And gently override (ie: not convert) to the TZ to UTC
             # dt = str_to_time(value)
             # return dt
-            time = int(timestamp2date(value))
+            time = timestamp2date(value)
             return time
         except TypeError:
             return None
@@ -380,7 +381,8 @@ class TimeField(Attribute):
                             (self.name, type(value)))
         if value is None:
             return None
-        time = int(date2timestamp(value))
+        t = date2timestamp(value)
+        time = decimal.Decimal('%.6f' % t)
         return time
 
     def value_type(self):

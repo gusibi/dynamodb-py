@@ -194,7 +194,7 @@ class Query(object):
     def where(self, *args):
         # Find by any number of matching criteria... though presently only
         # "where" is supported.
-        self.filter_args = args
+        self.filter_args.extend(args)
         return copy.deepcopy(self)
 
     def limit(self, limit):
@@ -230,13 +230,12 @@ class Query(object):
         if isinstance(index_field, Fields):
             name = index_field.name
             index_name = self.instance._local_indexes.get(name)
-            if not index_name:
+            if not (index_name or index_field.range_key):
                 raise FieldValidationException('index not found')
             self.filter_index_field = name
-            self.query_params.update({
-                'IndexName': index_name,
-                'ScanIndexForward': asc
-            })
+            if index_name:
+                self.query_params['IndexName'] = index_name
+            self.query_params['ScanIndexForward'] = asc
         else:
             raise FieldValidationException('%s not a field' % index_field)
         return copy.deepcopy(self)
