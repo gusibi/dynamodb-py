@@ -53,10 +53,7 @@ config = {
 }
 
 
-print 'debug', environ.get('DEBUG')
-
-if environ.get('DEBUG'):
-    print '>>>>>>>>>>>>'
-    db = ConnectionManager(mode='local').db
-else:
+if environ.get('DEBUG') is not '1':
     db = ConnectionManager(mode='service', config=config).db
+else:
+    db = ConnectionManager(mode='local').db

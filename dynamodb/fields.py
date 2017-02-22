@@ -10,7 +10,7 @@ from datetime import datetime, date, timedelta
 
 from .json_import import json
 from .errors import FieldValidationException
-from .helpers import str_time, str_to_time, date2timestamp
+from .helpers import str_time, str_to_time, date2timestamp, timestamp2date, smart_unicode
 from .expression import Expression
 
 
@@ -106,16 +106,13 @@ class Attribute(Expression):
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         # default store unicode
-        try:
-            return unicode(value)
-        except UnicodeError:
-            return value.decode('utf-8')
+        return smart_unicode(value)
 
     def value_type(self):
         return unicode
 
     def acceptable_types(self):
-        return (basestring, dict, list, float, int, set)
+        return (basestring, dict, list, float, int, set, unicode)
 
     def validate(self, instance):
         val = getattr(instance, self.name)
@@ -146,7 +143,7 @@ class CharField(Attribute):
     def typecast_for_read(self, value):
         if value == 'None':
             return ''
-        return value.decode('utf-8')
+        return smart_unicode(value)
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
@@ -301,6 +298,11 @@ class DateTimeField(Attribute):
             return None
 
     def typecast_for_storage(self, value):
+        if isinstance(value, (str, unicode)):
+            try:
+                value = str_to_time(value)
+            except TypeError:
+                return None
         if not isinstance(value, date):
             raise TypeError("%s should be date object, and not a %s" %
                             (self.name, type(value)))
@@ -309,7 +311,7 @@ class DateTimeField(Attribute):
         return str_time(value)
 
     def value_type(self):
-        return datetime
+        return (datetime, str, unicode)
 
     def acceptable_types(self):
         return self.value_type()
@@ -363,7 +365,9 @@ class TimeField(Attribute):
         try:
             # We load as if the timestampe was naive
             # And gently override (ie: not convert) to the TZ to UTC
-            time = int(date2timestamp(value))
+            # dt = str_to_time(value)
+            # return dt
+            time = int(timestamp2date(value))
             return time
         except TypeError:
             return None
@@ -376,10 +380,11 @@ class TimeField(Attribute):
                             (self.name, type(value)))
         if value is None:
             return None
-        return str_time(value)
+        time = int(date2timestamp(value))
+        return time
 
     def value_type(self):
-        return datetime
+        return (datetime, str, unicode, date)
 
     def acceptable_types(self):
         return self.value_type()

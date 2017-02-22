@@ -3,6 +3,7 @@ from __future__ import print_function
 
 import pprint
 
+from decimal import Decimal
 from botocore.exceptions import ClientError
 from botocore.vendored.requests.exceptions import ConnectionError
 
@@ -318,14 +319,19 @@ class Table(object):
 
     def _get_primary_key(self, **kwargs):
         hash_key, range_key = self.instance._hash_key, self.instance._range_key
+        hash_value = kwargs.get(hash_key) or getattr(self.instance, hash_key)
+        if isinstance(hash_value, (int, float)):
+            hash_value = Decimal(hash_value)
         key = {
-            hash_key: kwargs.get(hash_key) or getattr(self.instance, hash_key)
+            hash_key: hash_value
         }
-        _range_key = kwargs.get(range_key) or getattr(self.instance, range_key, None)
-        if range_key and not _range_key:
+        range_value = kwargs.get(range_key) or getattr(self.instance, range_key, None)
+        if range_key and not range_value:
             raise ParameterException('Invalid range key value type')
         elif range_key:
-            key[range_key] = _range_key
+            if isinstance(range_value, (int, float)):
+                range_value = Decimal(range_value)
+            key[range_key] = range_value
         return key
 
     def get_item(self, **kwargs):
@@ -336,6 +342,8 @@ class Table(object):
         try:
             response = self.table.get_item(**kwargs)
         except ClientError as e:
+            if e.response['Error']['Code'] == 'ValidationException':
+                return None
             raise ClientException(e.response['Error']['Message'])
         else:
             item = response.get('Item')
@@ -499,7 +507,6 @@ class Table(object):
         '''
         params = self._prepare_update_item_params(update_fields, *args, **kwargs)
         try:
-            print(params)
             item = self.table.update_item(**params)
             attributes = item.get('Attributes')
             return attributes

@@ -25,7 +25,17 @@ class ParameterException(Exception):
 
 
 class FieldValidationException(Exception):
-    pass
+
+    def __init__(self, errors, *args, **kwargs):
+        super(FieldValidationException, self).__init__(*args, **kwargs)
+        self._errors = errors
+
+    @property
+    def errors(self):
+        return self._errors
+
+    def __str__(self):
+        return self._errors
 
 
 class NotFoundError(Exception):
