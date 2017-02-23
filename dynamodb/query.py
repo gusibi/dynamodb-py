@@ -224,7 +224,8 @@ class Query(object):
         return value_for_read
 
     def first(self):
-        items = self.limit(1).all()
+        response = self.limit(1).all()
+        items = response['Items']
         return items[0] if items else None
 
     def order_by(self, index_field, asc=True):
