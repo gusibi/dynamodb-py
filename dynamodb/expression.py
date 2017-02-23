@@ -3,11 +3,13 @@
 '''
 DynamoDB KeyConditionExpression and FilterExpression
 '''
+from __future__ import print_function
 
 from decimal import Decimal
 from boto3.dynamodb.conditions import Key, Attr
 
 from .errors import ValidationException
+from .helpers import smart_unicode
 
 __all__ = ['Expression']
 
@@ -140,12 +142,14 @@ class Expression(object):
         exp_attr['value'] = {label: value}
         return exp, exp_attr, 'ADD'
 
-    def _expression_func(self, op, *args, **kwargs):
+    def typecast_for_storage(self, value):
+        return smart_unicode(value)
+
+    def _expression_func(self, op, *values, **kwargs):
         # for use by index ... bad
-        if self.use_decimal_types:
-            args = map(lambda x: Decimal(str(x)), args)
+        values = map(self.typecast_for_storage, values)
         self.op = op
-        self.express_args = args
+        self.express_args = values
         use_key = kwargs.get('use_key', False)
         if self.hash_key and op != 'eq':
             raise ValidationException('Query key condition not supported')
@@ -156,7 +160,7 @@ class Expression(object):
             func = getattr(Attr(self.name), op, None)
         if not func:
             raise ValidationException('Query key condition not supported')
-        return self, func(*args), use_key
+        return self, func(*values), use_key
 
     def _expression(self, op, value):
         if self.use_decimal_types:
