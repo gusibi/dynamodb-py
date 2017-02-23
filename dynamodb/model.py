@@ -1,10 +1,12 @@
 #! -*- coding: utf-8 -*-
 import copy
 
+from botocore.exceptions import ClientError
+
 from .table import Table
 from .query import Query
 from .fields import Attribute
-from .errors import FieldValidationException, ValidationException
+from .errors import FieldValidationException, ValidationException, ClientException
 from .helpers import get_items_for_storage
 
 
@@ -83,7 +85,14 @@ class ModelBase(object):
     @classmethod
     def create(cls, **kwargs):
         instance = cls(**kwargs)
-        return instance.save()
+        if not instance.is_valid():
+            raise ValidationException(instance.errors)
+        try:
+            Table(instance).put_item(instance.item)
+            item = cls(**instance.item)
+            return item
+        except ClientError as e:
+            raise ClientException(e.response['Error']['Message'])
 
     def condition(self, *args):
         instance = copy.deepcopy(self)
@@ -179,13 +188,14 @@ class ModelBase(object):
         return Table(instance).item_count()
 
     def write(self):
-        return Table(self).put_item(self.item)
+        item = Table(self).put_item(self.item)
+        return item
 
     def save(self, overwrite=False):
         if not self.is_valid():
             raise ValidationException(self.errors)
         self.write()
-        return True
+        return self
 
 
 class Model(ModelBase):
