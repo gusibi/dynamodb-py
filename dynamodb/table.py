@@ -441,6 +441,9 @@ class Table(object):
         params = {
             'Key': self._get_primary_key()
         }
+        ConditionExpression = getattr(self.instance, 'ConditionExpression', None)
+        if ConditionExpression:
+            params['ConditionExpression'] = ConditionExpression
         ExpressionAttributeValues = getattr(self.instance,
                                             'ExpressionAttributeValues', {})
         ExpressionAttributeNames = getattr(self.instance,
@@ -515,6 +518,24 @@ class Table(object):
                 print(e.response['Error']['Message'])
             raise ClientException(e.response['Error']['Message'])
 
+    def _prepare_delete_item_params(self):
+        params = {
+            'Key': self._get_primary_key()
+        }
+        ConditionExpression = getattr(self.instance, 'ConditionExpression', None)
+        if ConditionExpression:
+            params['ConditionExpression'] = ConditionExpression
+        ExpressionAttributeValues = getattr(self.instance,
+                                            'ExpressionAttributeValues', {})
+        if ExpressionAttributeValues:
+            params['ExpressionAttributeValues'] = ExpressionAttributeValues
+        ExpressionAttributeNames = getattr(self.instance,
+                                           'ExpressionAttributeNames', {})
+        if ExpressionAttributeNames:
+            params['ExpressionAttributeNames'] = ExpressionAttributeNames
+        return params
+
+
     def delete_item(self, **kwargs):
         '''
         http://boto3.readthedocs.io/en/stable/reference/services/dynamodb.html#DynamoDB.Table.delete_item
@@ -539,7 +560,6 @@ class Table(object):
             Key={
                 'string': 'string'|123|Binary(b'bytes')|True|None|set(['string'])|set([123])|set([Binary(b'bytes')])|[]|{}
             },
-            ConditionalOperator='AND'|'OR',
             ReturnValues='NONE'|'ALL_OLD'|'UPDATED_OLD'|'ALL_NEW'|'UPDATED_NEW',
             ReturnConsumedCapacity='INDEXES'|'TOTAL'|'NONE',
             ReturnItemCollectionMetrics='SIZE'|'NONE',

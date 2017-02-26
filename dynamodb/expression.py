@@ -2,6 +2,7 @@
 
 '''
 DynamoDB KeyConditionExpression and FilterExpression
+http://boto3.readthedocs.io/en/stable/reference/customizations/dynamodb.html#ref-dynamodb-conditions
 '''
 from __future__ import print_function
 
@@ -171,45 +172,50 @@ class Expression(object):
 
     def eq(self, value):  # ==
         # Creates a condition where the attribute is equal to the value.
+        # Attr & Key
         return self._expression_func('eq', value)
 
     def ne(self, value):  # !=
         # Creates a condition where the attribute is not equal to the value
+        # Attr
         return self._expression_func('ne', value)
-
-    def _eq(self, value):
-        # Creates a condition where the attribute is equal to the value.
-        return self._expression('=', value)
 
     def lt(self, value):  # <
         # Creates a condition where the attribute is less than the value.
+        # Attr & Key
         return self._expression_func('lt', value)
 
     def lte(self, value):  # <=
         # Creates a condition where the attribute is less than or
         # equal to the value.
+        # Attr & Key
         return self._expression_func('lte', value)
 
     def gt(self, value):  # >
         # Creates a condition where the attribute is greater than the value.
+        # Attr & Key
         return self._expression_func('gt', value)
 
     def gte(self, value):  # >=
         # Creates a condition where the attribute is greater than or equal to
         # the value.
+        # Attr & Key
         return self._expression_func('gte', value)
 
     def between(self, low_value, high_value):
         # Creates a condition where the attribute is greater than or equal to
         # the low value and less than or equal to the high value.
+        # Attr & Key
         return self._expression_func('between', low_value, high_value)
 
     def begins_with(self, value):
         # Creates a condition where the attribute begins with the value
+        # Attr & Key
         return self._expression_func('begins_with', value)
 
     def is_in(self, value):
         # Creates a condition where the attribute is in the value
+        # Attr
         if self.hash_key or self.range_key:
             # ValidationException
             raise ValidationException('Query key condition not supported')
@@ -217,6 +223,7 @@ class Expression(object):
 
     def contains(self, value):
         # Creates a condition where the attribute contains the value.
+        # Attr
         if self.hash_key or self.range_key:
             # ValidationException
             raise ValidationException('Query key condition not supported')
@@ -224,6 +231,7 @@ class Expression(object):
 
     def exists(self):
         # Creates a condition where the attribute exists.
+        # Attr
         if self.hash_key or self.range_key:
             # ValidationException
             raise ValidationException('Query key condition not supported')
@@ -231,6 +239,7 @@ class Expression(object):
 
     def not_exists(self):
         # Creates a condition where the attribute does not exists.
+        # Attr
         if self.hash_key or self.range_key:
             # ValidationException
             raise ValidationException('Query key condition not supported')
