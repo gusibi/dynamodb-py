@@ -120,9 +120,10 @@ class Expression(object):
                 else:
                     exp = '{exp}, {sub_exp}'.format(exp=exp,
                                                     sub_exp=sub_exp)
+            return exp, {'name': ean}, 'REMOVE'
         else:
             exp = '{path}'.format(path=path)
-        return exp, {'name': ean}, 'REMOVE'
+            return exp, {}, 'REMOVE'
 
     def add(self, value, path=None, attr_label=None):
         '''
