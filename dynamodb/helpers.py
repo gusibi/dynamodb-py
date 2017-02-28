@@ -43,7 +43,7 @@ def date2timestamp(dt):
     # datetime to timestamp
     import time
     if not isinstance(dt, datetime):
-        return datetime
+        return dt
     timestamp = time.mktime(dt.timetuple()) + dt.microsecond/1e6
     return timestamp
 

@@ -378,12 +378,17 @@ class TimeField(Attribute):
     def typecast_for_storage(self, value):
         if isinstance(value, decimal.Decimal):
             return value
-        if not isinstance(value, date):
+        if not isinstance(value, self.value_type()):
             raise TypeError("%s should be date object, and not a %s" %
                             (self.name, type(value)))
         if value is None:
             return None
         t = date2timestamp(value)
+        try:
+            t = float(t)
+        except TypeError:
+            raise TypeError("%s should be date object, and not a %s" %
+                            (self.name, type(value)))
         time = decimal.Decimal('%.6f' % t)
         return time
 

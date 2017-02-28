@@ -535,7 +535,6 @@ class Table(object):
             params['ExpressionAttributeNames'] = ExpressionAttributeNames
         return params
 
-
     def delete_item(self, **kwargs):
         '''
         http://boto3.readthedocs.io/en/stable/reference/services/dynamodb.html#DynamoDB.Table.delete_item
