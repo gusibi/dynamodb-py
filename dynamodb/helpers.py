@@ -1,4 +1,10 @@
 #! -*- coding: utf-8 -*-
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+
+from functools import wraps
 
 import six
 import pytz
@@ -204,6 +210,25 @@ This is suitable for writing to sys.stdout (for instance).
 force_str.__doc__ = """
 Apply force_text in Python 3 and force_bytes in Python 2.
 """
+
+
+def cache_for(duration):
+    def deco(func):
+        @wraps(func)
+        def fn(*args, **kwargs):
+            import time
+            all_args = []
+            all_args.append(args)
+            key = pickle.dumps((all_args, kwargs))
+            value, expire = func.func_dict.get(key, (None, None))
+            now = int(time.time())
+            if value is not None and expire > now:
+                return value
+            value = func(*args, **kwargs)
+            func.func_dict[key] = (value, int(time.time()) + duration)
+            return value
+        return fn
+    return deco
 
 
 def get_attribute_type(attribute):

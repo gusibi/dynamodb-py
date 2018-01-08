@@ -7,7 +7,7 @@ from .table import Table
 from .query import Query
 from .fields import Attribute
 from .errors import FieldValidationException, ValidationException, ClientException
-from .helpers import get_items_for_storage
+from .helpers import get_items_for_storage, cache_for
 
 
 def _initialize_attributes(model_class, name, bases, attrs):
@@ -297,7 +297,6 @@ class Model(ModelBase):
         Returns a dict with models attribute name as keys
         and attribute descriptors as values.
         """
-        # print self._attributes
         return dict(self._attributes)
 
     @property

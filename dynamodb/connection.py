@@ -43,6 +43,10 @@ class ConnectionManager:
                 raise ParameterException("Invalid config")
             params.update(config)
             db = boto3.resource('dynamodb', **params)
+            db.meta.client.meta.config.connect_timeout = environ.get(
+                'DYNAMODB_CONNECT_TIMEOUT', 1)
+            db.meta.client.meta.config.read_timeout = environ.get(
+                'DYNAMODB_READ_TIMEOUT', 2)
         return db
 
 
