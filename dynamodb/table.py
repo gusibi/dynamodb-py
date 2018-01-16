@@ -325,6 +325,8 @@ class Table(object):
         key = {
             hash_key: hash_value
         }
+        if not range_key:
+            return key
         range_value = kwargs.get(range_key) or getattr(self.instance, range_key, None)
         if range_key and not range_value:
             raise ParameterException('Invalid range key value type')
