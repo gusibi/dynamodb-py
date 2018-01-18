@@ -53,7 +53,7 @@ class ConnectionManager:
 config = {
     'aws_access_key_id': environ.get('AWS_ACCESS_KEY_ID'),
     'aws_secret_access_key': environ.get('AWS_SECRET_ACCESS_KEY'),
-    'region_name': environ.get('REGION_NAME', 'cn-north-1')
+    'region_name': environ.get('AWS_DEFAULT_REGION', 'cn-north-1')
 }
 
 
