@@ -1,10 +1,14 @@
 #! -*- coding: utf-8 -*-
-
 from __future__ import print_function  # Python 2/3 compatibility
+from os import environ
+
 import boto3
 
+environ['DEBUG'] = '1'
+
 from dynamodb.model import Model
-from dynamodb.fields import CharField, IntegerField, FloatField, DictField
+from dynamodb.fields import (CharField, IntegerField, FloatField,
+                             DictField, BooleanField, DateTimeField)
 from dynamodb.table import Table
 
 '''
@@ -14,6 +18,7 @@ year - 分区键。AttributeType 为 N，表示数字。
 title - 排序键。AttributeType 为 S，表示字符串。
 
 '''
+
 
 dynamodb = boto3.resource('dynamodb', region_name='us-west-2',
                           endpoint_url="http://localhost:8000")
@@ -67,12 +72,39 @@ class Movies(Model):
     info = DictField(name='info', default={})
 
 
+class Authentication(Model):
+    __table_name__ = 'authentication'
+
+    ReadCapacityUnits = 100
+    WriteCapacityUnits = 10
+
+    APPROACH_MOBILE = 'mobile'
+    APPROACH_WEIXIN = 'weixin'
+    APPROACH_MOBILE_PASSWORD = 'mobile_password'
+
+    __global_indexes__ = [
+        ('authentication_account_id-index', ('account_id', 'approach'), ['account_id', 'approach', 'identity', 'is_verified']),
+    ]
+
+    account_id = CharField(name='account_id')
+    approach = CharField(name='approach', range_key=True)
+    identity = CharField(name='identity', hash_key=True)
+    is_verified = BooleanField(name='is_verified', default=False)
+    date_created = DateTimeField(name='date_created')
+
+
 def create_table():
-    # Table(Movies()).delete()
+    Table(Movies()).delete()
     table = Table(Movies()).create()
     print("Table status:", table.table_status)
     print("Table info:", Table(Movies()).info())
     print("Table indexes", Movies()._local_indexes)
+
+    Table(Authentication()).delete()
+    table = Table(Authentication()).create()
+    print("Table status:", table.table_status)
+    print("Table info:", Table(Authentication()).info())
+    print("Table indexes", Authentication()._local_indexes)
 
 
 if __name__ == '__main__':

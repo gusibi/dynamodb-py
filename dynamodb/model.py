@@ -1,6 +1,7 @@
 #! -*- coding: utf-8 -*-
 import copy
 
+from six import with_metaclass
 from botocore.exceptions import ClientError
 
 from .table import Table
@@ -21,10 +22,10 @@ def _initialize_attributes(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelMetaclass):
             continue
-        for k, v in parent._attributes.iteritems():
+        for k, v in parent._attributes.items():
             model_class._attributes[k] = v
 
-    for k, v in attrs.iteritems():
+    for k, v in attrs.items():
         if isinstance(v, Attribute):
             model_class._attributes[k] = v
             v.name = v.name or k
@@ -36,18 +37,20 @@ def _initialize_indexes(model_class, name, bases, attrs):
     """
     model_class._local_indexed_fields = []
     model_class._local_indexes = {}
-    model_class._global_indexed_fields = model_class.__global_index__
-    model_class._global_indexes = {}
+    model_class._global_indexed_fields = []
+    model_class._global_indexes = model_class.__global_indexes__
+    model_class._global_secondary_indexes = []
     model_class._hash_key = None
     model_class._range_key = None
     for parent in bases:
         if not isinstance(parent, ModelMetaclass):
             continue
-        for k, v in parent._attributes.iteritems():
+        for k, v in parent._attributes.items():
             if v.indexed:
                 model_class._local_indexed_fields.append(k)
 
-    for k, v in attrs.iteritems():
+    # setting hash_key and range_key and local indexes 
+    for k, v in attrs.items():
         if isinstance(v, (Attribute,)):
             if v.indexed:
                 model_class._local_indexed_fields.append(k)
@@ -60,6 +63,38 @@ def _initialize_indexes(model_class, name, bases, attrs):
     if name not in ('ModelBase', 'Model') and not model_class._hash_key:
         raise ValidationException('hash_key is required')
 
+    # setting global_indexes
+    global_indexes = []
+    global_fields = set()
+    for gindex in model_class._global_indexes:
+        index = {}
+        name, primary_key, fields = gindex
+        index['name'] = name
+        # 处理主键
+        if len(primary_key) == 2:
+            hash_key, range_key = primary_key
+        elif len(primary_key) == 1:
+            hash_key, range_key = primary_key[0], None
+        else:
+            raise ValidationException('invalid primary key')
+        index['hash_key'] = hash_key
+        global_fields.add(hash_key)
+        index['range_key'] = range_key
+        if range_key:
+            global_fields.add(range_key)
+        if hash_key not in model_class._attributes:
+            raise ValidationException('invalid hash key: %s' % hash_key)
+        if range_key and range_key not in model_class._attributes:
+            raise ValidationException('invalid range key: %s' % range_key)
+        # 处理备份键
+        for field in fields:
+            if field not in model_class._attributes:
+                raise ValidationException('invalid include field: %s' % field)
+        index['include_fields'] = fields
+        global_indexes.append(index)
+    model_class._global_indexed_fields = global_fields
+    model_class._global_secondary_indexes = global_indexes
+
 
 class ModelMetaclass(type):
 
@@ -68,7 +103,7 @@ class ModelMetaclass(type):
     """
 
     __table_name__ = None
-    __global_index__ = []
+    __global_indexes__ = []
     __local_index__ = {}
 
     def __init__(cls, name, bases, attrs):
@@ -78,9 +113,9 @@ class ModelMetaclass(type):
         _initialize_indexes(cls, name, bases, attrs)
 
 
-class ModelBase(object):
+class ModelBase(with_metaclass(ModelMetaclass, object)):
 
-    __metaclass__ = ModelMetaclass
+    #  __metaclass__ = ModelMetaclass
 
     @classmethod
     def create(cls, **kwargs):
@@ -238,7 +273,7 @@ class Model(ModelBase):
 
     def validate_attrs(self, **kwargs):
         self._errors = []
-        for attr, value in kwargs.iteritems():
+        for attr, value in kwargs.items():
             field = self.attributes.get(attr)
             if not field:
                 raise ValidationException('Field not found: %s' % attr)
@@ -306,7 +341,7 @@ class Model(ModelBase):
 
     def _get_values_for_read(self, values):
         read_values = {}
-        for att, value in values.iteritems():
+        for att, value in values.items():
             if att not in self.attributes:
                 continue
             descriptor = self.attributes[att]
@@ -318,7 +353,7 @@ class Model(ModelBase):
         data = {}
         if not self.is_valid():
             raise FieldValidationException(self.errors)
-        for attr, field in self.attributes.iteritems():
+        for attr, field in self.attributes.items():
             value = getattr(self, attr)
             if value is not None:
                 data[attr] = field.typecast_for_storage(value)
