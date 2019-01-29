@@ -9,6 +9,8 @@ import pickle
 import decimal
 from datetime import datetime, date, timedelta
 
+import six
+
 from .json_import import json
 from .errors import FieldValidationException
 from .helpers import str_time, str_to_time, date2timestamp, timestamp2date, smart_unicode
@@ -20,8 +22,12 @@ __all__ = ['Attribute', 'CharField', 'IntegerField', 'FloatField',
            'BooleanField', 'DictField', 'SetField', 'ListField']
 
 # TODO
-# 完成index
 # 完成 query scan
+
+if six.PY3:
+    basestring = str
+    unicode = str
+    long = int
 
 
 class DecimalEncoder(json.JSONEncoder):
@@ -151,7 +157,7 @@ class CharField(Attribute):
         if value is None:
             return ''
         try:
-            return unicode(value)
+            return smart_unicode(value)
         except UnicodeError:
             return value.decode('utf-8')
 

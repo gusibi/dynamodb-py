@@ -1,12 +1,15 @@
 #! -*- coding: utf-8 -*-
 from __future__ import print_function  # Python 2/3 compatibility
+from os import environ
+
+environ['DEBUG'] = '1'
 
 import boto3
 import json
 import decimal
 from botocore.exceptions import ClientError
 
-from movies import Movies
+from movies import Movies, Authentication
 
 
 # Helper class to convert a DynamoDB item to JSON.
@@ -40,14 +43,21 @@ def get_item_by_boto3():
     except ClientError as e:
         print(e.response['Error']['Message'])
     else:
-        item = response['Item']
-        print("GetItem succeeded:")
-        print(json.dumps(item, indent=4, cls=DecimalEncoder))
+        print(response)
+        item = response.get('Item')
+        if item:
+            print("GetItem succeeded:")
+            print(json.dumps(item, indent=4, cls=DecimalEncoder))
+        else:
+            print("NotFound")
 
 
 def get_item():
     item = Movies.get(year=year, title=title)
-    print("GetItem succeeded:", item.info, item.year)
+    if item:
+        print("GetItem succeeded:", item.info, item.year)
+    else:
+        print("GetItem not found")
 
     primary_keys = [
         {'year': 1990, 'title': 'Edward Scissorhands'},
@@ -58,6 +68,19 @@ def get_item():
     print('items len:', len(items))
 
 
+def get_item_with_global_index():
+    Authentication.create(identity='123', approach='mobile', account_id="123")
+    Authentication.create(identity='124', approach='weixin', account_id="123")
+    Authentication.create(identity='125', approach='mobile', account_id="125")
+    Authentication.create(identity='126', approach='weixin', account_id="126")
+    item = (Authentication.global_query(index_name='authentication_account_id-index')
+            .get(account_id="123", approach='mobile'))
+    print(item)
+    print("Authentication with account_id and approach")
+    print(item.account_id, ":", item.approach, item.identity)
+
+
 if __name__ == '__main__':
     get_item_by_boto3()
     get_item()
+    get_item_with_global_index()

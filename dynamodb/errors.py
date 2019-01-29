@@ -24,6 +24,10 @@ class ParameterException(Exception):
     pass
 
 
+class GlobalSecondaryIndexesException(Exception):
+    pass
+
+
 class FieldValidationException(Exception):
 
     def __init__(self, errors, *args, **kwargs):

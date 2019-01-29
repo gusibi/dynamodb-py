@@ -1,6 +1,10 @@
 #! -*- coding: utf-8 -*-
 
 from __future__ import print_function  # Python 2/3 compatibility
+from os import environ
+
+environ['DEBUG'] = '1'
+
 import json
 import boto3
 import decimal

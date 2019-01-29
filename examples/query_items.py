@@ -2,6 +2,8 @@
 from __future__ import print_function  # Python 2/3 compatibility
 from os import environ
 
+environ['DEBUG'] = '1'
+
 import boto3
 import decimal
 from botocore.exceptions import ClientError
@@ -9,7 +11,7 @@ from boto3.dynamodb.conditions import Key, Attr
 
 from dynamodb.json_import import json
 
-from movies import Movies
+from movies import Movies, Authentication
 
 
 # Helper class to convert a DynamoDB item to JSON.
@@ -175,6 +177,30 @@ def query_with_index():
         print(i.year, ":", i.title, i.rating)
 
 
+def query_with_global_index():
+    Authentication.create(identity='123', approach='mobile', account_id="123")
+    Authentication.create(identity='124', approach='weixin', account_id="123")
+    Authentication.create(identity='125', approach='mobile', account_id="125")
+    Authentication.create(identity='126', approach='weixin', account_id="126")
+    response = (Authentication.global_query(index_name='authentication_account_id-index')
+                .where(Authentication.account_id.eq("123"),
+                       Authentication.approach.eq('mobile'))
+                .order_by(Authentication.approach)  # use rating as range key by local index
+                .all())
+    items = response['Items']
+    print("Authentication with account_id and approach")
+    for i in items:
+        print(i.account_id, ":", i.approach, i.identity)
+    response = (Authentication.global_query(index_name='authentication_account_id-index')
+                .where(Authentication.account_id.eq("123"))
+                .order_by(Authentication.approach, asc=False)  # use rating as range key by local index
+                .all())
+    items = response['Items']
+    print("Authentication with account_id")
+    for i in items:
+        print(i.account_id, ":", i.approach, i.identity)
+
+
 def query_with_paginator():
     response = (Movies.query()
                 .where(Movies.year.eq(1992))
@@ -208,5 +234,6 @@ if __name__ == '__main__':
     # query_with_limit_and_filter_by_boto3()
     # query_without_index()
     # query_with_index()
+    query_with_global_index()
     # query_with_paginator_by_boto3()
-    query_with_paginator()
+    # query_with_paginator()

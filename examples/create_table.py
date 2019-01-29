@@ -2,9 +2,9 @@
 from __future__ import print_function  # Python 2/3 compatibility
 from os import environ
 
-import boto3
-
 environ['DEBUG'] = '1'
+
+import boto3
 
 from dynamodb.model import Model
 from dynamodb.fields import (CharField, IntegerField, FloatField,
@@ -94,13 +94,13 @@ class Authentication(Model):
 
 
 def create_table():
-    Table(Movies()).delete()
-    table = Table(Movies()).create()
-    print("Table status:", table.table_status)
-    print("Table info:", Table(Movies()).info())
-    print("Table indexes", Movies()._local_indexes)
+    # Table(Movies()).delete()
+    # table = Table(Movies()).create()
+    # print("Table status:", table.table_status)
+    # print("Table info:", Table(Movies()).info())
+    # print("Table indexes", Movies()._local_indexes)
 
-    Table(Authentication()).delete()
+    # Table(Authentication()).delete()
     table = Table(Authentication()).create()
     print("Table status:", table.table_status)
     print("Table info:", Table(Authentication()).info())

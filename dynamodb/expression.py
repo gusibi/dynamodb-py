@@ -148,21 +148,23 @@ class Expression(object):
         return smart_unicode(value)
 
     def _expression_func(self, op, *values, **kwargs):
+        # print(op, values, kwargs)
         # for use by index ... bad
-        values = map(self.typecast_for_storage, values)
+        # list 是为了兼容py3 python3 中 map 返回的是class map
+        values = list(map(self.typecast_for_storage, values))
         self.op = op
         self.express_args = values
-        use_key = kwargs.get('use_key', False)
+        is_key = kwargs.get('is_key', False)
         if self.hash_key and op != 'eq':
             raise ValidationException('Query key condition not supported')
-        elif self.hash_key or self.range_key or use_key:
-            use_key = True
+        elif self.hash_key or self.range_key or is_key:
+            is_key = True
             func = getattr(Key(self.name), op, None)
         else:
             func = getattr(Attr(self.name), op, None)
         if not func:
             raise ValidationException('Query key condition not supported')
-        return self, func(*values), use_key
+        return self, func(*values), is_key
 
     def _expression(self, op, value):
         if self.use_decimal_types:

@@ -5,7 +5,7 @@ from six import with_metaclass
 from botocore.exceptions import ClientError
 
 from .table import Table
-from .query import Query
+from .query import Query, GlobalQuery
 from .fields import Attribute
 from .errors import FieldValidationException, ValidationException, ClientException
 from .helpers import get_items_for_storage, cache_for
@@ -211,6 +211,11 @@ class ModelBase(with_metaclass(ModelMetaclass, object)):
     def query(cls, *args):
         instance = cls()
         return Query(instance, *args)
+
+    @classmethod
+    def global_query(cls, index_name=None, *args):
+        instance = cls()
+        return GlobalQuery(instance, index_name, *args)
 
     @classmethod
     def scan(cls):
