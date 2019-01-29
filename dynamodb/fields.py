@@ -13,7 +13,7 @@ import six
 
 from .json_import import json
 from .errors import FieldValidationException
-from .helpers import str_time, str_to_time, date2timestamp, timestamp2date, smart_unicode
+from .helpers import str_time, str_to_time, date2timestamp, timestamp2date, smart_text
 from .expression import Expression
 
 
@@ -113,7 +113,7 @@ class Attribute(Expression):
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         # default store unicode
-        return smart_unicode(value)
+        return smart_text(value)
 
     def value_type(self):
         return unicode
@@ -150,14 +150,14 @@ class CharField(Attribute):
     def typecast_for_read(self, value):
         if value == 'None':
             return ''
-        return smart_unicode(value)
+        return smart_text(value)
 
     def typecast_for_storage(self, value):
         """Typecasts the value for storing to DynamoDB."""
         if value is None:
             return ''
         try:
-            return smart_unicode(value)
+            return smart_text(value)
         except UnicodeError:
             return value.decode('utf-8')
 

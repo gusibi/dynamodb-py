@@ -1,6 +1,7 @@
 #! -*- coding: utf-8 -*-
 import copy
 
+import six
 from six import with_metaclass
 from botocore.exceptions import ClientError
 
@@ -22,10 +23,10 @@ def _initialize_attributes(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelMetaclass):
             continue
-        for k, v in parent._attributes.items():
+        for k, v in six.iteritems(parent._attributes):
             model_class._attributes[k] = v
 
-    for k, v in attrs.items():
+    for k, v in six.iteritems(attrs):
         if isinstance(v, Attribute):
             model_class._attributes[k] = v
             v.name = v.name or k
@@ -45,12 +46,13 @@ def _initialize_indexes(model_class, name, bases, attrs):
     for parent in bases:
         if not isinstance(parent, ModelMetaclass):
             continue
-        for k, v in parent._attributes.items():
+    for k, v in six.iteritems(attrs):
+        if isinstance(v, (Attribute,)):
             if v.indexed:
                 model_class._local_indexed_fields.append(k)
 
     # setting hash_key and range_key and local indexes 
-    for k, v in attrs.items():
+    for k, v in six.iteritems(attrs):
         if isinstance(v, (Attribute,)):
             if v.indexed:
                 model_class._local_indexed_fields.append(k)
@@ -164,7 +166,7 @@ class ModelBase(with_metaclass(ModelMetaclass, object)):
             ReturnConsumedCapacity=ReturnConsumedCapacity)
         if not self.validate_attrs(**kwargs):
             raise FieldValidationException(self._errors)
-        for k, v in kwargs.items():
+        for k, v in six.iteritems(kwargs):
             field = self.attributes[k]
             update_fields[k] = field.typecast_for_storage(v)
         # use storage value
@@ -278,7 +280,7 @@ class Model(ModelBase):
 
     def validate_attrs(self, **kwargs):
         self._errors = []
-        for attr, value in kwargs.items():
+        for attr, value in six.iteritems(kwargs):
             field = self.attributes.get(attr)
             if not field:
                 raise ValidationException('Field not found: %s' % attr)
@@ -346,7 +348,7 @@ class Model(ModelBase):
 
     def _get_values_for_read(self, values):
         read_values = {}
-        for att, value in values.items():
+        for att, value in six.iteritems(values):
             if att not in self.attributes:
                 continue
             descriptor = self.attributes[att]
@@ -358,7 +360,7 @@ class Model(ModelBase):
         data = {}
         if not self.is_valid():
             raise FieldValidationException(self.errors)
-        for attr, field in self.attributes.items():
+        for attr, field in six.iteritems(self.attributes):
             value = getattr(self, attr)
             if value is not None:
                 data[attr] = field.typecast_for_storage(value)

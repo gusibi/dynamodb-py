@@ -7,6 +7,8 @@ from decimal import Decimal
 from botocore.exceptions import ClientError
 from botocore.vendored.requests.exceptions import ConnectionError
 
+import six
+
 from .connection import db
 from .helpers import get_attribute_type
 from .errors import ClientException, ConnectionException, ParameterException
@@ -551,7 +553,7 @@ class Table(object):
             action_exp_dict[action] = action_exp
             ExpressionAttributeValues.update(eav)
             ExpressionAttributeNames.update(ean)
-        for action, _exp in action_exp_dict.items():
+        for action, _exp in six.iteritems(action_exp_dict):
             action_exp_dict[action] = '{action} {exp}'.format(action=action,
                                                               exp=_exp)
         if ExpressionAttributeValues:

@@ -10,7 +10,7 @@ from decimal import Decimal
 from boto3.dynamodb.conditions import Key, Attr
 
 from .errors import ValidationException
-from .helpers import smart_unicode
+from .helpers import smart_text
 
 __all__ = ['Expression']
 
@@ -145,7 +145,7 @@ class Expression(object):
         return exp, exp_attr, 'ADD'
 
     def typecast_for_storage(self, value):
-        return smart_unicode(value)
+        return smart_text(value)
 
     def _expression_func(self, op, *values, **kwargs):
         # print(op, values, kwargs)
