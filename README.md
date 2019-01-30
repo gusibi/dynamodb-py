@@ -8,6 +8,7 @@ DynamoDB is not like other document-based databases you might know, and is very 
 
 ```
 * boto3
+* six
 * pytz
 * dateutil
 * simplejson
