@@ -194,6 +194,7 @@ def force_bytes(s, encoding='utf-8', strings_only=False, errors='strict'):
 
 if six.PY3:
     smart_str = smart_text
+    smart_unicode = smart_text
     force_str = force_text
 else:
     smart_str = smart_bytes
@@ -232,7 +233,7 @@ def cache_for(duration):
 
 
 def get_attribute_type(attribute):
-    from .fields import CharField, IntegerField, DateTimeField, FloatField, TimeField
+    from .fields import CharField, IntegerField, DateTimeField, FloatField, TimeField, BooleanField
     if isinstance(attribute, (CharField, DateTimeField)):
         return 'S'
     elif isinstance(attribute, (IntegerField, FloatField, TimeField)):

@@ -7,6 +7,8 @@ from decimal import Decimal
 from botocore.exceptions import ClientError
 from botocore.vendored.requests.exceptions import ConnectionError
 
+import six
+
 from .connection import db
 from .helpers import get_attribute_type
 from .errors import ClientException, ConnectionException, ParameterException
@@ -62,6 +64,8 @@ class Table(object):
         return KeySchema
 
     def _prepare_attribute_definitions(self):
+        # Member must satisfy enum value set: [B, N, S]
+        attrs_set = set()
         AttributeDefinitions = []
         attributes = self.instance.attributes
         hash_key = self.instance._hash_key
@@ -69,17 +73,30 @@ class Table(object):
             'AttributeName': hash_key,
             'AttributeType': get_attribute_type(attributes[hash_key]),
         })
+        attrs_set.add(hash_key)
         range_key = self.instance._range_key
         if range_key:
             AttributeDefinitions.append({
                 'AttributeName': range_key,
                 'AttributeType': get_attribute_type(attributes[range_key]),
             })
+        attrs_set.add(range_key)
         for field in self.instance._local_indexed_fields:
+            if field in attrs_set:
+                continue
             AttributeDefinitions.append({
                 'AttributeName': field,
                 'AttributeType': get_attribute_type(attributes[field]),
             })
+            attrs_set.add(field)
+        for field in self.instance._global_indexed_fields:
+            if field in attrs_set:
+                continue
+            AttributeDefinitions.append({
+                'AttributeName': field,
+                'AttributeType': get_attribute_type(attributes[field]),
+            })
+            attrs_set.add(field)
         return AttributeDefinitions
 
     def _prepare_primary_key(self, params):
@@ -106,7 +123,59 @@ class Table(object):
         return indexes
 
     def _prepare_global_indexes(self):
-        return []
+        '''
+        {
+            'IndexName': 'string',
+            'KeySchema': [
+                {
+                    'AttributeName': 'string',
+                    'KeyType': 'HASH'|'RANGE'
+                },
+            ],
+            'Projection': {
+                'ProjectionType': 'ALL'|'KEYS_ONLY'|'INCLUDE',
+                'NonKeyAttributes': [
+                    'string',
+                ]
+            },
+            'ProvisionedThroughput': {
+                'ReadCapacityUnits': 123,
+                'WriteCapacityUnits': 123
+            }
+        }
+        '''                
+        global_indexes = []
+        for _gindex in self.instance._global_secondary_indexes:
+            index = {
+                "IndexName": _gindex['name'],
+            }
+            # setting key schema
+            hash_key = _gindex['hash_key']
+            key_schema = [
+                {
+                    "AttributeName": hash_key,
+                    "KeyType": "HASH"
+                }
+            ]
+            range_key = _gindex['range_key']
+            if range_key:
+                key_schema.append({
+                    "AttributeName": range_key,
+                    "KeyType": "RANGE"
+                })
+            index['KeySchema'] = key_schema
+            # setting projection
+            index['Projection'] = {
+                'ProjectionType': 'INCLUDE',
+                'NonKeyAttributes': list(_gindex['include_fields'])
+            }
+            # setting ProvisionedThroughput
+            index['ProvisionedThroughput'] = {
+                'ReadCapacityUnits': self.instance.ReadCapacityUnits,
+                'WriteCapacityUnits': self.instance.WriteCapacityUnits
+            }
+            global_indexes.append(index)
+        return global_indexes
 
     def _prepare_create_table_params(self):
         # TableName
@@ -128,6 +197,13 @@ class Table(object):
             'ReadCapacityUnits': self.instance.ReadCapacityUnits,
             'WriteCapacityUnits': self.instance.WriteCapacityUnits
         }
+        # TODO update botocore
+        # BillingMode='PROVISIONED'|'PAY_PER_REQUEST',
+        # billing_model = getattr(self.instance, 'BillingMode', None)
+        # if not billing_model:
+        #     # 默认使用预配置
+        #     billing_model = 'PROVISIONED'
+        # table_params['BillingMode'] = billing_model
         return table_params
 
     def create(self):
@@ -187,6 +263,7 @@ class Table(object):
                     }
                 },
             ],
+            BillingMode='PROVISIONED'|'PAY_PER_REQUEST', # 使用PAY_PER_REQUEST 吞吐量可设置为0
             ProvisionedThroughput={
                 'ReadCapacityUnits': 123,
                 'WriteCapacityUnits': 123
@@ -476,7 +553,7 @@ class Table(object):
             action_exp_dict[action] = action_exp
             ExpressionAttributeValues.update(eav)
             ExpressionAttributeNames.update(ean)
-        for action, _exp in action_exp_dict.iteritems():
+        for action, _exp in six.iteritems(action_exp_dict):
             action_exp_dict[action] = '{action} {exp}'.format(action=action,
                                                               exp=_exp)
         if ExpressionAttributeValues:

@@ -8,6 +8,7 @@ DynamoDB is not like other document-based databases you might know, and is very 
 
 ```
 * boto3
+* six
 * pytz
 * dateutil
 * simplejson
@@ -25,7 +26,7 @@ pip install git+https://github.com/gusibi/dynamodb-py.git@master
 
 ynamodb-py has some sensible defaults for you when you create a new table, including the table name and the primary key column. But you can change those if you like on table creation.
 
-```
+```python
 from dynamodb.model import Model
 from dynamodb.fields import CharField, IntegerField, FloatField, DictField
 from dynamodb.table import Table
@@ -52,6 +53,36 @@ Table(Movies()).update()
 
 # delete_table
 Table(Movies()).delete()
+```
+
+### Global Secondary Indexes Example
+
+```python
+from dynamodb.model import Model
+from dynamodb.fields import CharField, IntegerField, FloatField, DictField
+from dynamodb.table import Table
+
+class GameScores(Model):
+
+    __table_name__ = 'GameScores'
+
+    ReadCapacityUnits = 10
+    WriteCapacityUnits = 10
+
+    __global_indexes__ = [
+        ('game_scores-index', ('title', 'top_score'), ['title', 'top_score', 'user_id']),
+    ]
+
+    user_id = IntegerField(name='user_id', hash_key=True)
+    title = CharField(name='title', range_key=True)
+    top_score = FloatField(name='top_score', indexed=True)
+    top_score_date = CharField(name='top_score_date')
+    wins = IntegerField(name='wins', indexed=True)
+    losses = IntegerField(name='losses', indexed=True)
+
+
+# query use global secondary indexes
+GameScores.global_query(index_name='game_scores-index').where(GameScores.title.eq("Puzzle Battle")).order_by(GameScores.top_score, asc=False).all()
 ```
 
 ## Fields
